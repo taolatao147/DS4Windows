@@ -124,6 +124,15 @@ namespace DS4WinWPF.Translations {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An anti-deadzone acts as an offset for use with an axis to denote the minimum output value generated after an axis has left its assigned deadzone. This is mainly meant to help with mapping an axis to the assigned deadzone value used for an axis in a video game. For example, the typical assigned deadzone for XInput LS in a video game is around 8000 (25%). With no anti-deadzone assigned, an axis would have to move past the assigned deadzone in DS4Windows along with the game&apos;s assigned axis deadzone..
+        /// </summary>
+        public static string AntiDeadzoneTooltip {
+            get {
+                return ResourceManager.GetString("AntiDeadzoneTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Apply.
         /// </summary>
         public static string Apply {
@@ -201,6 +210,15 @@ namespace DS4WinWPF.Translations {
         public static string Changelog {
             get {
                 return ResourceManager.GetString("Changelog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Changes take effect on new device connection.
+        /// </summary>
+        public static string ChangeOnNewDeviceConn {
+            get {
+                return ResourceManager.GetString("ChangeOnNewDeviceConn", resourceCulture);
             }
         }
         
@@ -396,6 +414,24 @@ namespace DS4WinWPF.Translations {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Disable virtual controller.
+        /// </summary>
+        public static string DisableVirtualController {
+            get {
+                return ResourceManager.GetString("DisableVirtualController", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Do not spawn/associate virtual controllers for connected controllers using this profile (Applies on profile save).
+        /// </summary>
+        public static string DisableVirtualControllerTip {
+            get {
+                return ResourceManager.GetString("DisableVirtualControllerTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Controller/Driver Setup.
         /// </summary>
         public static string DriverSetup {
@@ -428,6 +464,15 @@ namespace DS4WinWPF.Translations {
         public static string EditAction {
             get {
                 return ResourceManager.GetString("EditAction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Emulated Controller.
+        /// </summary>
+        public static string EmulatedController {
+            get {
+                return ResourceManager.GetString("EmulatedController", resourceCulture);
             }
         }
         
@@ -793,6 +838,15 @@ namespace DS4WinWPF.Translations {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Choose the type of output virtual controller (Applies on profile save).
+        /// </summary>
+        public static string OutContNotice {
+            get {
+                return ResourceManager.GetString("OutContNotice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Path.
         /// </summary>
         public static string Path {
@@ -892,6 +946,15 @@ namespace DS4WinWPF.Translations {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Rename.
+        /// </summary>
+        public static string RenameProfile {
+            get {
+                return ResourceManager.GetString("RenameProfile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Right Stick.
         /// </summary>
         public static string RightStick {
@@ -933,6 +996,15 @@ namespace DS4WinWPF.Translations {
         public static string RunAtStartup {
             get {
                 return ResourceManager.GetString("RunAtStartup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fuzz specifies the minimum number of device units, in active zone, that the Accel has to be rotated before the output is registered as changed in the mapper. The value is expressed in raw Accel units..
+        /// </summary>
+        public static string SASteeringWheelFuzzTooltip {
+            get {
+                return ResourceManager.GetString("SASteeringWheelFuzzTooltip", resourceCulture);
             }
         }
         
@@ -1009,11 +1081,146 @@ namespace DS4WinWPF.Translations {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Fuzz specifies the minimum number of units the analog stick moves, in active zone, before the output is registered as changed in the mapper. This setting can be useful for worn sticks that cannot maintain a constant position. The value is expressed in raw stick units..
+        /// </summary>
+        public static string StickFuzzTooltip {
+            get {
+                return ResourceManager.GetString("StickFuzzTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OLD OBSOLETE SETTING. Attempt to apply a curve based on raw input coordinates before any dead zone info is applied. Wonky.
+        /// </summary>
+        public static string StickInputCurveTooltip {
+            get {
+                return ResourceManager.GetString("StickInputCurveTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Always enforce max output setting. Useful for 100% Max Output and confining value to a circular output value.
+        /// </summary>
+        public static string StickMaxOutputForceTooltip {
+            get {
+                return ResourceManager.GetString("StickMaxOutputForceTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to In some situations, it might be useful to limit the maximum value that is output by the output analog stick. Max Output allows throttling the final output value of the analog stick..
+        /// </summary>
+        public static string StickMaxOutputTooltip {
+            get {
+                return ResourceManager.GetString("StickMaxOutputTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Threshold for when an action will fire.
+        /// </summary>
+        public static string StickOuterBindDeadTooltip {
+            get {
+                return ResourceManager.GetString("StickOuterBindDeadTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Have outer bind fire before reaching a threshold. Action releases once the threshold has been exceeded.
+        /// </summary>
+        public static string StickOuterBindInvertTooltip {
+            get {
+                return ResourceManager.GetString("StickOuterBindInvertTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Action to execute when stick travel reaches past a treshold. Useful for mapping keys for Walk or Sprint actions. Invert casues the action to fire up until the threshold.
+        /// </summary>
+        public static string StickOuterBindTooltip {
+            get {
+                return ResourceManager.GetString("StickOuterBindTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The rotation setting is meant to help correct the orientation of an analog stick if your thumb is slightly shifted when moving an analog stick. For example, your thumb might be slightly shifted from center when the analog stick is moved fully north. My thumbs shift slightly to the right when moving an analog stick fully north due to the way my hands grip the DS4. The value used denotes the number of degrees used to adjust the final axis output value. Values allows range from -180 to 180. Default is 0..
+        /// </summary>
+        public static string StickRotationTooltip {
+            get {
+                return ResourceManager.GetString("StickRotationTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Stop.
         /// </summary>
         public static string StopText {
             get {
                 return ResourceManager.GetString("StopText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Throttle low end of Touchpad movement. Reduces accidental mouse cursor movement when holding a mostly fixed position on the Touchpad.
+        /// </summary>
+        public static string TouchpadJitterCompTooltip {
+            get {
+                return ResourceManager.GetString("TouchpadJitterCompTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum calculated output travel before a Mouse event is sent to the system.
+        /// </summary>
+        public static string TouchpadMinThresholdTooltip {
+            get {
+                return ResourceManager.GetString("TouchpadMinThresholdTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Adjusts a touchpad swipe by a given rotation angle. Useful when a normal touchpad swipe is not a straight line across. Values allows range from -180 to 180. Default is 0..
+        /// </summary>
+        public static string TouchpadRotationTooltip {
+            get {
+                return ResourceManager.GetString("TouchpadRotationTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sensitivity used to engage a multi-touch Mouse Wheel Scroll action.
+        /// </summary>
+        public static string TouchpadSlideTooltip {
+            get {
+                return ResourceManager.GetString("TouchpadSlideTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Activate Mouse Left click with a Touchpad Tap. Max time interval is set at (value * 2) ms..
+        /// </summary>
+        public static string TouchpadTapTooltip {
+            get {
+                return ResourceManager.GetString("TouchpadTapTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Adds momentum to a Touchpad swipe once a finger is lifted. Adds extra Mouse cursor travel than would be possible with the confined space on the Touchpad.
+        /// </summary>
+        public static string TouchpadTrackballEnableTooltip {
+            get {
+                return ResourceManager.GetString("TouchpadTrackballEnableTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add friction to virtual Trackball. Decreased friction will increase final mouse cursor travel time.
+        /// </summary>
+        public static string TouchpadTrackballFrictionTooltip {
+            get {
+                return ResourceManager.GetString("TouchpadTrackballFrictionTooltip", resourceCulture);
             }
         }
         
@@ -1063,11 +1270,20 @@ namespace DS4WinWPF.Translations {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ViGEm Device Plugin Failed. Likely an internal ViGEmBus problem. Closing connection. If the issue persists, please reboot Windows. WARNING: You will likely get a BSOD on Windows shutdown..
+        ///   Looks up a localized string similar to ViGEm Device Plugin Failed. Likely an internal ViGEmBus problem. Closing connection. If the issue persists, please close DS4Windows and then run the PurgeOldXInput app from the Tools folder. A Windows reboot might be needed as well..
         /// </summary>
         public static string ViGEmPluginFailure {
             get {
                 return ResourceManager.GetString("ViGEmPluginFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Virtual Controller Settings.
+        /// </summary>
+        public static string VirtualControllerSettings {
+            get {
+                return ResourceManager.GetString("VirtualControllerSettings", resourceCulture);
             }
         }
         

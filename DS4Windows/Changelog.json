@@ -1,9 +1,144 @@
 {
-  "latest_version": "3.0.5",
-  "latest_version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 5},
-  "updated_at": "2021-05-10T06:11:48+0000",
+  "latest_version": "3.0.11",
+  "latest_version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 11},
+  "updated_at": "2021-06-29T23:15:01+0000",
   "changelog": {
     "versions": [
+    {
+      "version_str": "3.0.11",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 11},
+      "base_header": "Version 3.0.11",
+      "release_date": "2021-06-29T23:15:01+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.11",
+          "log_text": ["* Group and move Virtual Controller options in Other tab. Contribution by **Kanuan**",
+            "* Fixed MODIFIER_ENHANCED value for FakerInput mapping",
+            "* Fixed Alt, Windows, and other modifier keys mapping for FakerInput",
+            "* Fixed Stick to Mouse Wheel routine for SendInput output",
+            "* Fixed tray menu profile selection for names with underscores",
+            "* Added many tooltip strings in Profile Editor",
+            "* Fixed RenameProfileWindow closing early due to early DialogResult assignment. Property calls Close on the Window",
+            "* Removed BitChute social link",
+            "* Fixed display of CheckEveryUnit combobox in Settings tab. Not sure when VS changed that portion of the XAML",
+            "* Removed obsolete 'Hide DS4 Controller' option again. Can't have options",
+            "* Added ScrollViewer to Other tab in Profile Editor. Enough controls in tab to justify it",
+            "* Added force option for LS and RS MaxOutput. Allow 100% forced circular max output for sticks",
+            "* Made Capture, SL, and SR buttons mappable",
+            "* Created Outer Button bindings for LS and RS. Allows extra distance action for the sticks like Walk or Sprint",
+            "* Display Touchpad X and Y in Controller Readings tab",
+            "* Increased HID report input buffer to 3 rather than 2. Not sure it will really matter",
+            "* Disabled broken DS4 feedback support **again**. Can't have semi-nice things. **Don't bring it up again until at least the next ViGEmBus driver update**",
+            "* Added change to not send Profile loaded message for secondary JoyCon in Joined mode"],
+          "editor": "ryochan7",
+          "editors_note": ["Done dealing with the average gamer (DSP)"],
+          "updated_at": "2021-06-29T23:15:01+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.10",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 10},
+      "base_header": "Version 3.0.10",
+      "release_date": "2021-06-22T16:13:13+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.10",
+          "log_text": ["* Removed virtual device plug/unplug delay",
+            "* Removed Dispatcher and thread from OutputSlotManager",
+            "* Another fix to hopefully sort out Special Action items properly",
+            "* Allow profiles to be renamed from within app using Profiles tab",
+            "* 'Hold for X secs' special actions now support decimal values. Contribution by **mika-n**",
+            "* DeviceOptions has a new 'Verbose log messages' option. Contribution by **mika-n**",
+            "* Fixed coordinate system for Stick to Mouse Wheel calculations",
+            "* Reset mouse position for FakerInput on Sync method. Fixes some mouse related actions conflicting with FakerInput output handler",
+            "* Updated Touchpad scroll support to use new coordinate system",
+            "* Updated Strings.ru.resx. Contribution by **shikulja**"],
+          "editor": "ryochan7",
+          "editors_note": [""],
+          "updated_at": "2021-06-22T16:13:13+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.9",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 9},
+      "base_header": "Version 3.0.9",
+      "release_date": "2021-06-12T04:47:57+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.9",
+          "log_text": ["* Fixed obtaining source index item for Special Action list",
+            "* Allow Touchpad Click as an output for Macros",
+            "* Delay log message for virtual device association",
+            "* Updated ViGEmPluginFailure message to make reference to PurgeOldXInput utility",
+            "* Added PurgeOldXInput utility to Tools folder. Might be useful for deleting invalid virtual Xbox 360 controllers",
+            "* Updated Japanese translation. Contribution by **toshixm**",
+            "* Updated Czech translation. Contribution by **MikeCZ23**"],
+          "editor": "ryochan7",
+          "editors_note": ["Burnout"],
+          "updated_at": "2021-06-12T04:47:57+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.8",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 8},
+      "base_header": "Version 3.0.8",
+      "release_date": "2021-06-06T03:50:47+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.8",
+          "log_text": ["* Fixed Special Action sorting to sort by user defined Action name",
+            "* Removed support for HidGuardian completely. **HidHide is the only supported HID device blocking driver now**"],
+          "editor": "ryochan7",
+          "editors_note": ["Done"],
+          "updated_at": "2021-06-06T03:50:47+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.7",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 7},
+      "base_header": "Version 3.0.7",
+      "release_date": "2021-06-04T20:24:42+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.7",
+          "log_text": ["* Added slot# log messages to a gamepad connect/disconnect handler and 'permanent' slot debug msg. Contribution by **mika-n**",
+            "* Small special action fix when action trigger is somehow flagged as None",
+            "* Added support for virtual KB+M driver FakerInput v. 0.1. Needed to play Valorant and other apps that block SendInput events.",
+            "* Sort Special Action list by action name",
+            "* Fixed event order issue that caused output slots to not get disconnected",
+            "* Reduced mouse remainder cutoff to the hundredths place",
+            "* Fixed OutSlotDevice check to make sure Permanent slots are detached on service stop"],
+          "editor": "ryochan7",
+          "editors_note": ["Driver hell"],
+          "updated_at": "2021-06-04T20:24:42+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.6",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 6},
+      "base_header": "Version 3.0.6",
+      "release_date": "2021-05-27T05:02:47+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.6",
+          "log_text": ["* Re-compiled program and tools"],
+          "editor": "ryochan7",
+          "editors_note": ["Nothin"],
+          "updated_at": "2021-05-10T06:11:48+0000"
+        }
+      ]
+    },
     {
       "version_str": "3.0.5",
       "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 5},

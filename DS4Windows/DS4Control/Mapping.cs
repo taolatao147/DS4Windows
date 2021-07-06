@@ -35,6 +35,7 @@ namespace DS4Windows
                 public KeyPress previous, current;
             }
             public Dictionary<UInt16, KeyPresses> keyPresses = new Dictionary<UInt16, KeyPresses>();
+            public Dictionary<ushort, ushort> nativeKeyAlias = new Dictionary<ushort, ushort>();
 
             public void SaveToPrevious(bool performClear)
             {
@@ -254,6 +255,7 @@ namespace DS4Windows
                 flickAngleRemainder = DEFAULT_FLICK_ANGLE_REMAINDER;
             }
         }
+
         public static FlickStickMappingData[] flickMappingData = new FlickStickMappingData[Global.MAX_DS4_CONTROLLER_COUNT]
         {
             new FlickStickMappingData(), new FlickStickMappingData(), new FlickStickMappingData(),
@@ -354,9 +356,13 @@ namespace DS4Windows
         private static bool pressagain = false;
         private static int wheel = 0, keyshelddown = 0;
 
+        // Data needed to calculate Stick to Mouse Wheel conversion
+        private static double stickWheel = 0.0, stickWheelRemainder = 0.0;
+        private static bool stickWheelDownDir = false;
+
         //mapcustom
-        public static bool[] pressedonce = new bool[261], macrodone = new bool[39];
-        static bool[] macroControl = new bool[25];
+        public static bool[] pressedonce = new bool[2400], macrodone = new bool[48];
+        static bool[] macroControl = new bool[26];
         static uint macroCount = 0;
         static Dictionary<string, Task>[] macroTaskQueue = new Dictionary<string, Task>[Global.MAX_DS4_CONTROLLER_COUNT] { new Dictionary<string, Task>(), new Dictionary<string, Task>(), new Dictionary<string, Task>(), new Dictionary<string, Task>(), new Dictionary<string, Task>(), new Dictionary<string, Task>(), new Dictionary<string, Task>(), new Dictionary<string, Task>() };
 
@@ -373,17 +379,22 @@ namespace DS4Windows
         public static DateTime[] oldnowKeyAct = new DateTime[Global.MAX_DS4_CONTROLLER_COUNT] { DateTime.MinValue,
             DateTime.MinValue, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue };
 
-        private static DS4Controls[] shiftTriggerMapping = new DS4Controls[28] { DS4Controls.None, DS4Controls.Cross, DS4Controls.Circle, DS4Controls.Square,
+        private static DS4Controls[] shiftTriggerMapping = new DS4Controls[31]
+        {
+            DS4Controls.None, DS4Controls.Cross, DS4Controls.Circle, DS4Controls.Square,
             DS4Controls.Triangle, DS4Controls.Options, DS4Controls.Share, DS4Controls.DpadUp, DS4Controls.DpadDown,
             DS4Controls.DpadLeft, DS4Controls.DpadRight, DS4Controls.PS, DS4Controls.L1, DS4Controls.R1, DS4Controls.L2,
             DS4Controls.R2, DS4Controls.L3, DS4Controls.R3, DS4Controls.TouchLeft, DS4Controls.TouchUpper, DS4Controls.TouchMulti,
             DS4Controls.TouchRight, DS4Controls.GyroZNeg, DS4Controls.GyroZPos, DS4Controls.GyroXPos, DS4Controls.GyroXNeg,
-            DS4Controls.None, DS4Controls.Mute,
+            DS4Controls.None, DS4Controls.Mute, DS4Controls.Capture, DS4Controls.SideL, DS4Controls.SideR
         };
 
         // Button to index mapping used for macrodone array. Not even sure this
         // is needed. This was originally made to replace a switch test used in the DS4ControlToInt method.
-        private static int[] ds4ControlMapping = new int[39] { 0, // DS4Control.None
+        // DS4Controls -> Macro input map index
+        private static int[] ds4ControlMapping = new int[48]
+        {
+            0, // DS4Controls.None
             16, // DS4Controls.LXNeg
             20, // DS4Controls.LXPos
             17, // DS4Controls.LYNeg
@@ -421,7 +432,16 @@ namespace DS4Windows
             35, // DS4Controls.SwipeLeft
             36, // DS4Controls.SwipeRight
             37, // DS4Controls.SwipeUp
-            38  // DS4Controls.SwipeDown
+            38, // DS4Controls.SwipeDown
+            39, // DS4Controls.L2FullPull
+            40, // DS4Controls.R2FullPull
+            41, // DS4Controls.GyroSwipeLeft
+            42, // DS4Controls.GyroSwipeRight
+            43, // DS4Controls.GyroSwipeUp
+            44, // DS4Controls.GyroSwipeDown
+            45, // DS4Controls.Capture
+            46, // DS4Controls.SideL
+            47, // DS4Controls.SideR
         };
 
         // Define here to save some time processing.
@@ -466,71 +486,71 @@ namespace DS4Windows
             if (globalState.currentClicks.toggleCount != 0 && globalState.previousClicks.toggleCount == 0 && globalState.currentClicks.toggle)
             {
                 if (globalState.currentClicks.leftCount != 0 && globalState.previousClicks.leftCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_LEFTDOWN);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_LEFTDOWN);
                 if (globalState.currentClicks.rightCount != 0 && globalState.previousClicks.rightCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_RIGHTDOWN);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_RIGHTDOWN);
                 if (globalState.currentClicks.middleCount != 0 && globalState.previousClicks.middleCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_MIDDLEDOWN);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_MIDDLEDOWN);
                 if (globalState.currentClicks.fourthCount != 0 && globalState.previousClicks.fourthCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONDOWN, 1);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONDOWN, 1);
                 if (globalState.currentClicks.fifthCount != 0 && globalState.previousClicks.fifthCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONDOWN, 2);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONDOWN, 2);
             }
             else if (globalState.currentClicks.toggleCount != 0 && globalState.previousClicks.toggleCount == 0 && !globalState.currentClicks.toggle)
             {
                 if (globalState.currentClicks.leftCount != 0 && globalState.previousClicks.leftCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_LEFTUP);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_LEFTUP);
                 if (globalState.currentClicks.rightCount != 0 && globalState.previousClicks.rightCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_RIGHTUP);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_RIGHTUP);
                 if (globalState.currentClicks.middleCount != 0 && globalState.previousClicks.middleCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_MIDDLEUP);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_MIDDLEUP);
                 if (globalState.currentClicks.fourthCount != 0 && globalState.previousClicks.fourthCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONUP, 1);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONUP, 1);
                 if (globalState.currentClicks.fifthCount != 0 && globalState.previousClicks.fifthCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONUP, 2);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONUP, 2);
             }
 
             if (globalState.currentClicks.toggleCount == 0 && globalState.previousClicks.toggleCount == 0)
             {
                 if (globalState.currentClicks.leftCount != 0 && globalState.previousClicks.leftCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_LEFTDOWN);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_LEFTDOWN);
                 else if (globalState.currentClicks.leftCount == 0 && globalState.previousClicks.leftCount != 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_LEFTUP);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_LEFTUP);
 
                 if (globalState.currentClicks.middleCount != 0 && globalState.previousClicks.middleCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_MIDDLEDOWN);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_MIDDLEDOWN);
                 else if (globalState.currentClicks.middleCount == 0 && globalState.previousClicks.middleCount != 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_MIDDLEUP);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_MIDDLEUP);
 
                 if (globalState.currentClicks.rightCount != 0 && globalState.previousClicks.rightCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_RIGHTDOWN);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_RIGHTDOWN);
                 else if (globalState.currentClicks.rightCount == 0 && globalState.previousClicks.rightCount != 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_RIGHTUP);
+                    outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_RIGHTUP);
 
                 if (globalState.currentClicks.fourthCount != 0 && globalState.previousClicks.fourthCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONDOWN, 1);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONDOWN, 1);
                 else if (globalState.currentClicks.fourthCount == 0 && globalState.previousClicks.fourthCount != 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONUP, 1);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONUP, 1);
 
                 if (globalState.currentClicks.fifthCount != 0 && globalState.previousClicks.fifthCount == 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONDOWN, 2);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONDOWN, 2);
                 else if (globalState.currentClicks.fifthCount == 0 && globalState.previousClicks.fifthCount != 0)
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONUP, 2);
+                    outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONUP, 2);
 
                 if (globalState.currentClicks.wUpCount != 0 && globalState.previousClicks.wUpCount == 0)
                 {
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_WHEEL, 120);
+                    outputKBMHandler.PerformMouseWheelEvent(outputKBMMapping.WHEEL_TICK_UP, 0);
                     oldnow = DateTime.UtcNow;
-                    wheel = 120;
+                    wheel = outputKBMMapping.WHEEL_TICK_UP;
                 }
                 else if (globalState.currentClicks.wUpCount == 0 && globalState.previousClicks.wUpCount != 0)
                     wheel = 0;
 
                 if (globalState.currentClicks.wDownCount != 0 && globalState.previousClicks.wDownCount == 0)
                 {
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_WHEEL, -120);
+                    outputKBMHandler.PerformMouseWheelEvent(outputKBMMapping.WHEEL_TICK_DOWN, 0);
                     oldnow = DateTime.UtcNow;
-                    wheel = -120;
+                    wheel = outputKBMMapping.WHEEL_TICK_DOWN;
                 }
                 if (globalState.currentClicks.wDownCount == 0 && globalState.previousClicks.wDownCount != 0)
                     wheel = 0;
@@ -540,10 +560,10 @@ namespace DS4Windows
             if (wheel != 0) //Continue mouse wheel movement
             {
                 DateTime now = DateTime.UtcNow;
-                if (now >= oldnow + TimeSpan.FromMilliseconds(100) && !pressagain)
+                if (now >= oldnow + TimeSpan.FromMilliseconds(200) && !pressagain)
                 {
                     oldnow = now;
-                    InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_WHEEL, wheel);
+                    outputKBMHandler.PerformMouseWheelEvent(wheel, 0);
                 }
             }
 
@@ -573,39 +593,41 @@ namespace DS4Windows
                     gkp.current = kvpValue.current;
                     globalState.keyPresses[kvpKey] = gkp;
                 }
+
+                ushort nativeKey = state.nativeKeyAlias[kvpKey];
                 if (gkp.current.toggleCount != 0 && gkp.previous.toggleCount == 0 && gkp.current.toggle)
                 {
                     if (gkp.current.scanCodeCount != 0)
-                        InputMethods.performSCKeyPress(kvpKey);
+                        outputKBMHandler.PerformKeyPressAlt(nativeKey);
                     else
-                        InputMethods.performKeyPress(kvpKey);
+                        outputKBMHandler.PerformKeyPress(nativeKey);
                 }
                 else if (gkp.current.toggleCount != 0 && gkp.previous.toggleCount == 0 && !gkp.current.toggle)
                 {
                     if (gkp.previous.scanCodeCount != 0) // use the last type of VK/SC
-                        InputMethods.performSCKeyRelease(kvpKey);
+                        outputKBMHandler.PerformKeyReleaseAlt(nativeKey);
                     else
-                        InputMethods.performKeyRelease(kvpKey);
+                        outputKBMHandler.PerformKeyRelease(nativeKey);
                 }
                 else if (gkp.current.vkCount + gkp.current.scanCodeCount != 0 && gkp.previous.vkCount + gkp.previous.scanCodeCount == 0)
                 {
                     if (gkp.current.scanCodeCount != 0)
                     {
                         oldnow = DateTime.UtcNow;
-                        InputMethods.performSCKeyPress(kvpKey);
+                        outputKBMHandler.PerformKeyPressAlt(nativeKey);
                         pressagain = false;
                         keyshelddown = kvpKey;
                     }
                     else
                     {
                         oldnow = DateTime.UtcNow;
-                        InputMethods.performKeyPress(kvpKey);
+                        outputKBMHandler.PerformKeyPress(nativeKey);
                         pressagain = false;
                         keyshelddown = kvpKey;
                     }
                 }
-                else if (gkp.current.toggleCount != 0 || gkp.previous.toggleCount != 0 || gkp.current.repeatCount != 0 || // repeat or SC/VK transition
-                    ((gkp.previous.scanCodeCount == 0) != (gkp.current.scanCodeCount == 0))) //repeat keystroke after 500ms
+                else if (outputKBMHandler.fakeKeyRepeat && (gkp.current.toggleCount != 0 || gkp.previous.toggleCount != 0 || gkp.current.repeatCount != 0 || // repeat or SC/VK transition
+                     ((gkp.previous.scanCodeCount == 0) != (gkp.current.scanCodeCount == 0)))) //repeat keystroke after 500ms
                 {
                     if (keyshelddown == kvpKey)
                     {
@@ -621,7 +643,7 @@ namespace DS4Windows
                             if (now >= oldnow + TimeSpan.FromMilliseconds(25) && pressagain)
                             {
                                 oldnow = now;
-                                InputMethods.performSCKeyPress(kvpKey);
+                                outputKBMHandler.PerformKeyPressAlt(nativeKey);
                             }
                         }
                         else if (pressagain)
@@ -630,29 +652,35 @@ namespace DS4Windows
                             if (now >= oldnow + TimeSpan.FromMilliseconds(25) && pressagain)
                             {
                                 oldnow = now;
-                                InputMethods.performKeyPress(kvpKey);
+                                outputKBMHandler.PerformKeyPress(nativeKey);
                             }
                         }
                     }
                 }
+
                 if ((gkp.current.toggleCount == 0 && gkp.previous.toggleCount == 0) && gkp.current.vkCount + gkp.current.scanCodeCount == 0 && gkp.previous.vkCount + gkp.previous.scanCodeCount != 0)
                 {
                     if (gkp.previous.scanCodeCount != 0) // use the last type of VK/SC
                     {
-                        InputMethods.performSCKeyRelease(kvpKey);
+                        outputKBMHandler.PerformKeyReleaseAlt(nativeKey);
                         pressagain = false;
                     }
                     else
                     {
-                        InputMethods.performKeyRelease(kvpKey);
+                        outputKBMHandler.PerformKeyRelease(nativeKey);
                         pressagain = false;
                     }
                 }
             }
+
             globalState.SaveToPrevious(false);
 
             syncStateLock.ExitWriteLock();
             state.SaveToPrevious(true);
+
+            // Send possible virtual events to system. Only used for FakerInput atm.
+            // SendInput version does nothing
+            outputKBMHandler.Sync();
         }
 
         public enum Click { None, Left, Middle, Right, Fourth, Fifth, WUP, WDOWN };
@@ -688,7 +716,7 @@ namespace DS4Windows
         public static int DS4ControltoInt(DS4Controls ctrl)
         {
             int result = 0;
-            if (ctrl >= DS4Controls.None && ctrl <= DS4Controls.SwipeDown)
+            if (ctrl >= DS4Controls.None && ctrl <= DS4Controls.SideR)
             {
                 result = ds4ControlMapping[(int)ctrl];
             }
@@ -745,79 +773,6 @@ namespace DS4Windows
 
             cState.CopyTo(dState);
             //DS4State dState = new DS4State(cState);
-            int x;
-            int y;
-            int curve;
-
-            /* TODO: Look into curve options and make sure maximum axes values are being respected */
-            int lsCurve = getLSCurve(device);
-            if (lsCurve > 0)
-            {
-                x = cState.LX;
-                y = cState.LY;
-                float max = x + y;
-                double curvex;
-                double curvey;
-                curve = lsCurve;
-                double multimax = TValue(382.5, max, curve);
-                double multimin = TValue(127.5, max, curve);
-                if ((x > 127.5f && y > 127.5f) || (x < 127.5f && y < 127.5f))
-                {
-                    curvex = (x > 127.5f ? Math.Min(x, (x / max) * multimax) : Math.Max(x, (x / max) * multimin));
-                    curvey = (y > 127.5f ? Math.Min(y, (y / max) * multimax) : Math.Max(y, (y / max) * multimin));
-                }
-                else
-                {
-                    if (x < 127.5f)
-                    {
-                        curvex = Math.Min(x, (x / max) * multimax);
-                        curvey = Math.Min(y, (-(y / max) * multimax + 510));
-                    }
-                    else
-                    {
-                        curvex = Math.Min(x, (-(x / max) * multimax + 510));
-                        curvey = Math.Min(y, (y / max) * multimax);
-                    }
-                }
-
-                dState.LX = (byte)Math.Round(curvex, 0);
-                dState.LY = (byte)Math.Round(curvey, 0);
-            }
-
-            /* TODO: Look into curve options and make sure maximum axes values are being respected */
-            int rsCurve = getRSCurve(device);
-            if (rsCurve > 0)
-            {
-                x = cState.RX;
-                y = cState.RY;
-                float max = x + y;
-                double curvex;
-                double curvey;
-                curve = rsCurve;
-                double multimax = TValue(382.5, max, curve);
-                double multimin = TValue(127.5, max, curve);
-                if ((x > 127.5f && y > 127.5f) || (x < 127.5f && y < 127.5f))
-                {
-                    curvex = (x > 127.5f ? Math.Min(x, (x / max) * multimax) : Math.Max(x, (x / max) * multimin));
-                    curvey = (y > 127.5f ? Math.Min(y, (y / max) * multimax) : Math.Max(y, (y / max) * multimin));
-                }
-                else
-                {
-                    if (x < 127.5f)
-                    {
-                        curvex = Math.Min(x, (x / max) * multimax);
-                        curvey = Math.Min(y, (-(y / max) * multimax + 510));
-                    }
-                    else
-                    {
-                        curvex = Math.Min(x, (-(x / max) * multimax + 510));
-                        curvey = Math.Min(y, (y / max) * multimax);
-                    }
-                }
-
-                dState.RX = (byte)Math.Round(curvex, 0);
-                dState.RY = (byte)Math.Round(curvey, 0);
-            }
 
             if (lsMod.deadzoneType == StickDeadZoneInfo.DeadZoneType.Radial)
             {
@@ -826,7 +781,7 @@ namespace DS4Windows
                 int lsMaxZone = lsMod.maxZone;
                 double lsMaxOutput = lsMod.maxOutput;
                 double lsVerticalScale = lsMod.verticalScale;
-                bool interpret = lsAntiDead > 0 || lsMaxZone != 100 || lsMaxOutput != 100.0 || lsVerticalScale != StickDeadZoneInfo.DEFAULT_VERTICAL_SCALE;
+                bool interpret = lsAntiDead > 0 || lsMaxZone != 100 || lsMaxOutput != 100.0 || lsMod.maxOutputForce || lsVerticalScale != StickDeadZoneInfo.DEFAULT_VERTICAL_SCALE;
 
                 if (lsDeadzone > 0 || interpret)
                 {
@@ -881,7 +836,7 @@ namespace DS4Windows
                             tempOutputY = Math.Min(Math.Max(tempOutputY * verticalScale, 0.0), 1.0);
                         }
 
-                        if (lsMaxOutput != 100.0)
+                        if (lsMaxOutput != 100.0 || lsMod.maxOutputForce)
                         {
                             double maxOutXRatio = Math.Abs(Math.Cos(r)) * maxOutRatio;
                             double maxOutYRatio = Math.Abs(Math.Sin(r)) * maxOutRatio;
@@ -912,6 +867,38 @@ namespace DS4Windows
                         else
                         {
                             dState.LY = 128;
+                        }
+                    }
+                }
+
+                // Process LS Outer Binding
+                dState.OutputLSOuter = 0;
+                if (dState.LX != 128 || dState.LY != 128)
+                {
+                    int adjustX = dState.LX - 128;
+                    int adjustY = dState.LY - 128;
+                    double r = Math.Atan2(-adjustY, adjustX);
+                    //double r = Math.Atan2(-(dState.RY - 128.0), (dState.RX - 128.0));
+                    //double maxXValue = dState.RX >= 128.0 ? 127.0 : -128;
+                    //double maxYValue = dState.RY >= 128.0 ? 127.0 : -128;
+                    double hyp = Math.Sqrt((adjustX * adjustX) + (adjustY * adjustY));
+
+                    if (hyp != 0.0)
+                    {
+                        int maxValue = r >= 0.0 ? 127 : 128;
+                        double ratio = hyp / maxValue;
+                        if (ratio > 1.0) ratio = 1.0;
+                        double currentValue = ratio * 255;
+                        double deadValue = lsMod.outerBindDeadZone * 0.01 * 255.0;
+                        if (!lsMod.outerBindInvert && currentValue > deadValue)
+                        {
+                            double outputRatio = (currentValue - deadValue) / (double)(maxValue - deadValue);
+                            dState.OutputLSOuter = (byte)(outputRatio * 255);
+                        }
+                        else if (lsMod.outerBindInvert && currentValue < deadValue)
+                        {
+                            double outputRatio = (deadValue - currentValue) / (double)deadValue;
+                            dState.OutputRSOuter = (byte)(outputRatio * 255);
                         }
                     }
                 }
@@ -1015,7 +1002,7 @@ namespace DS4Windows
                 int rsMaxZone = rsMod.maxZone;
                 double rsMaxOutput = rsMod.maxOutput;
                 double rsVerticalScale = rsMod.verticalScale;
-                bool interpret = rsAntiDead > 0 || rsMaxZone != 100 || rsMaxOutput != 100.0 || rsVerticalScale != StickDeadZoneInfo.DEFAULT_VERTICAL_SCALE;
+                bool interpret = rsAntiDead > 0 || rsMaxZone != 100 || rsMaxOutput != 100.0 || rsMod.maxOutputForce || rsVerticalScale != StickDeadZoneInfo.DEFAULT_VERTICAL_SCALE;
 
                 if (rsDeadzone > 0 || interpret)
                 {
@@ -1072,7 +1059,7 @@ namespace DS4Windows
                             tempOutputY = Math.Min(Math.Max(tempOutputY * verticalScale, 0.0), 1.0);
                         }
 
-                        if (rsMaxOutput != 100.0)
+                        if (rsMaxOutput != 100.0 || rsMod.maxOutputForce)
                         {
                             double maxOutXRatio = Math.Abs(Math.Cos(r)) * maxOutRatio;
                             double maxOutYRatio = Math.Abs(Math.Sin(r)) * maxOutRatio;
@@ -1103,6 +1090,38 @@ namespace DS4Windows
                         else
                         {
                             dState.RY = 128;
+                        }
+                    }
+                }
+
+                // Process RS Outer Binding
+                dState.OutputRSOuter = 0;
+                if (dState.RX != 128 || dState.RY != 128)
+                {
+                    int adjustX = dState.RX - 128;
+                    int adjustY = dState.RY - 128;
+                    double r = Math.Atan2(-adjustY, adjustX);
+                    //double r = Math.Atan2(-(dState.RY - 128.0), (dState.RX - 128.0));
+                    //double maxXValue = dState.RX >= 128.0 ? 127.0 : -128;
+                    //double maxYValue = dState.RY >= 128.0 ? 127.0 : -128;
+                    double hyp = Math.Sqrt((adjustX * adjustX) + (adjustY * adjustY));
+
+                    if (hyp != 0.0)
+                    {
+                        int maxValue = r >= 0.0 ? 127 : 128;
+                        double ratio = hyp / maxValue;
+                        if (ratio > 1.0) ratio = 1.0;
+                        double currentValue = ratio * 255;
+                        double deadValue = rsMod.outerBindDeadZone * 0.01 * 255.0;
+                        if (!rsMod.outerBindInvert && currentValue > deadValue)
+                        {
+                            double outputRatio = (currentValue - deadValue) / (double)(maxValue - deadValue);
+                            dState.OutputRSOuter = (byte)(outputRatio * 255);
+                        }
+                        else if (rsMod.outerBindInvert && currentValue < deadValue)
+                        {
+                            double outputRatio = (deadValue - currentValue) / (double)deadValue;
+                            dState.OutputRSOuter = (byte)(outputRatio * 255);
                         }
                     }
                 }
@@ -1906,7 +1925,7 @@ namespace DS4Windows
             {
                 result = false;
             }
-            else if (trigger < 28 && trigger != 26)
+            else if (trigger < 31 && trigger != 26)
             {
                 DS4Controls ds = shiftTriggerMapping[trigger];
                 result = getBoolMapping2(device, ds, cState, eState, tp, fieldMapping);
@@ -1992,9 +2011,9 @@ namespace DS4Windows
 
             cState.calculateStickAngles();
             DS4StateFieldMapping fieldMapping = fieldMappings[device];
-            fieldMapping.populateFieldMapping(cState, eState, tp);
+            fieldMapping.PopulateFieldMapping(cState, eState, tp);
             DS4StateFieldMapping outputfieldMapping = outputFieldMappings[device];
-            outputfieldMapping.populateFieldMapping(cState, eState, tp);
+            outputfieldMapping.PopulateFieldMapping(cState, eState, tp);
             //DS4StateFieldMapping fieldMapping = new DS4StateFieldMapping(cState, eState, tp);
             //DS4StateFieldMapping outputfieldMapping = new DS4StateFieldMapping(cState, eState, tp);
 
@@ -2012,6 +2031,7 @@ namespace DS4Windows
             //foreach (DS4ControlSettings dcs in getDS4CSettings(device))
             //for (int settingIndex = 0, arlen = tempSettingsList.Count; settingIndex < arlen; settingIndex++)
 
+            // Process LS
             ControlSettingsGroup controlSetGroup = GetControlSettingsGroup(device);
             StickOutputSetting stickSettings = Global.LSOutputSettings[device];
             if (stickSettings.mode == StickMode.Controls)
@@ -2048,6 +2068,7 @@ namespace DS4Windows
                 }
             }
 
+            // Process RS
             stickSettings = Global.RSOutputSettings[device];
             if (stickSettings.mode == StickMode.Controls)
             {
@@ -2083,6 +2104,7 @@ namespace DS4Windows
                 }
             }
 
+            // Process L2
             TriggerOutputSettings l2TriggerSettings = Global.L2OutputSettings[device];
             DS4ControlSettings dcsTemp = controlSetGroup.L2;
             if (l2TriggerSettings.twoStageMode == TwoStageTriggerMode.Disabled)
@@ -2149,6 +2171,7 @@ namespace DS4Windows
                 l2TwoStageData.previousActiveButtons = tempButtons;
             }
 
+            // Process R2
             TriggerOutputSettings r2TriggerSettings = Global.R2OutputSettings[device];
             dcsTemp = controlSetGroup.R2;
             if (r2TriggerSettings.twoStageMode == TwoStageTriggerMode.Disabled)
@@ -2215,7 +2238,17 @@ namespace DS4Windows
                 r2TwoStageData.previousActiveButtons = tempButtons;
             }
 
+            // Process Standard buttons
             for (var settingEnum = controlSetGroup.ControlButtons.GetEnumerator(); settingEnum.MoveNext();)
+            {
+                DS4ControlSettings dcs = settingEnum.Current;
+                ProcessControlSettingAction(dcs, device, cState, MappedState, eState,
+                    tp, fieldMapping, outputfieldMapping, deviceState, ref tempMouseDeltaX,
+                    ref tempMouseDeltaY, ctrl);
+            }
+
+            // Process Extra Device specific buttons
+            for (var settingEnum = controlSetGroup.ExtraDeviceButtons.GetEnumerator(); settingEnum.MoveNext();)
             {
                 DS4ControlSettings dcs = settingEnum.Current;
                 ProcessControlSettingAction(dcs, device, cState, MappedState, eState,
@@ -2311,7 +2344,7 @@ namespace DS4Windows
                         const byte axisDead = 128;
                         DS4StateFieldMapping.ControlType controlType = DS4StateFieldMapping.mappedType[tempOutControl];
                         bool alt = controlType == DS4StateFieldMapping.ControlType.AxisDir && tempOutControl % 2 == 0 ? true : false;
-                        byte axisMapping = getXYAxisMapping2(device, tempMap.ds4input, cState, eState, tp, fieldMapping, alt);
+                        byte axisMapping = GetXYAxisMapping2(device, tempMap.ds4input, cState, eState, tp, fieldMapping, alt);
                         if (axisMapping != axisDead)
                         {
                             int controlRelation = tempOutControl % 2 == 0 ? tempOutControl - 1 : tempOutControl + 1;
@@ -2324,7 +2357,7 @@ namespace DS4Windows
                         if (tempMap.xoutput == DS4Controls.L2 || tempMap.xoutput == DS4Controls.R2)
                         {
                             const byte axisZero = 0;
-                            byte axisMapping = getByteMapping2(device, tempMap.ds4input, cState, eState, tp, fieldMapping);
+                            byte axisMapping = GetByteMapping2(device, tempMap.ds4input, cState, eState, tp, fieldMapping);
                             if (axisMapping != axisZero)
                                 outputfieldMapping.triggers[tempOutControl] = axisMapping;
                         }
@@ -2338,7 +2371,7 @@ namespace DS4Windows
                 }
             }
 
-            outputfieldMapping.populateState(MappedState);
+            outputfieldMapping.PopulateState(MappedState);
 
             if (macroCount > 0)
             {
@@ -2367,6 +2400,7 @@ namespace DS4Windows
                 if (macroControl[22]) MappedState.RX = 0;
                 if (macroControl[23]) MappedState.RY = 255;
                 if (macroControl[24]) MappedState.RY = 0;
+                if (macroControl[25]) MappedState.OutputTouchButton = true;
             }
 
             if (GetSASteeringWheelEmulationAxis(device) != SASteeringWheelEmulationAxisType.None)
@@ -2400,7 +2434,7 @@ namespace DS4Windows
                 out mouseDeltaX, out mouseDeltaY);
             if (mouseDeltaX != 0 || mouseDeltaY != 0)
             {
-                InputMethods.MoveCursorBy(mouseDeltaX, mouseDeltaY);
+                outputKBMHandler.MoveRelativeMouse(mouseDeltaX, mouseDeltaY);
             }
         }
 
@@ -2739,6 +2773,8 @@ namespace DS4Windows
         {
             //DS4ControlSettings dcs = tempSettingsList[settingIndex];
 
+            uint actionAlias = 0;
+
             //object action = null;
             ControlActionData action = null;
             DS4ControlSettings.ActionType actionType = 0;
@@ -2748,12 +2784,14 @@ namespace DS4Windows
             {
                 action = dcs.shiftAction;
                 actionType = dcs.shiftActionType;
+                actionAlias = dcs.shiftAction.actionAlias;
                 keyType = dcs.shiftKeyType;
             }
             else if (dcs.actionType != DS4ControlSettings.ActionType.Default)
             {
                 action = dcs.action;
                 actionType = dcs.actionType;
+                actionAlias = dcs.action.actionAlias;
                 keyType = dcs.keyType;
             }
 
@@ -2855,7 +2893,10 @@ namespace DS4Windows
                     {
                         SyntheticState.KeyPresses kp;
                         if (!deviceState.keyPresses.TryGetValue(value, out kp))
+                        {
                             deviceState.keyPresses[value] = kp = new SyntheticState.KeyPresses();
+                            deviceState.nativeKeyAlias[value] = (ushort)actionAlias;
+                        }
 
                         if (keyType.HasFlag(DS4KeyType.ScanCode))
                             kp.current.scanCodeCount++;
@@ -2960,9 +3001,19 @@ namespace DS4Windows
                                     if (getBoolActionMapping2(device, dcs.control, cState, eState, tp, fieldMapping))
                                     {
                                         if (isAnalog)
-                                            getMouseWheelMapping(device, dcs.control, cState, eState, tp, false);
+                                        {
+                                            if (stickWheelDownDir)
+                                            {
+                                                stickWheelRemainder = 0.0;
+                                                stickWheelDownDir = !stickWheelDownDir;
+                                            }
+
+                                            GetMouseWheelMapping(device, dcs.control, cState, eState, tp, fieldMapping, false);
+                                        }
                                         else
+                                        {
                                             deviceState.currentClicks.wUpCount++;
+                                        }
                                     }
 
                                     break;
@@ -2972,9 +3023,19 @@ namespace DS4Windows
                                     if (getBoolActionMapping2(device, dcs.control, cState, eState, tp, fieldMapping))
                                     {
                                         if (isAnalog)
-                                            getMouseWheelMapping(device, dcs.control, cState, eState, tp, true);
+                                        {
+                                            if (!stickWheelDownDir)
+                                            {
+                                                stickWheelRemainder = 0.0;
+                                                stickWheelDownDir = !stickWheelDownDir;
+                                            }
+
+                                            GetMouseWheelMapping(device, dcs.control, cState, eState, tp, fieldMapping, true);
+                                        }
                                         else
+                                        {
                                             deviceState.currentClicks.wDownCount++;
+                                        }
                                     }
 
                                     break;
@@ -3112,7 +3173,7 @@ namespace DS4Windows
                     //If a key or button is assigned to the trigger, a key special action is used like
                     //a quick tap to use and hold to use the regular custom button/key
                     bool triggerToBeTapped = action.typeID == SpecialAction.ActionTypeId.None && action.trigger.Count == 1 &&
-                            GetDS4CSetting(device, action.trigger[0]).IsDefault;
+                            (GetDS4CSetting(device, action.trigger[0])?.IsDefault ?? false);
                     if (!(action.typeID == SpecialAction.ActionTypeId.None || index < 0))
                     {
                         bool triggeractivated = true;
@@ -3312,12 +3373,12 @@ namespace DS4Windows
                                         if (dcs.actionType != DS4ControlSettings.ActionType.Default)
                                         {
                                             if (dcs.actionType == DS4ControlSettings.ActionType.Key)
-                                                InputMethods.performKeyRelease(ushort.Parse(dcs.action.ToString()));
+                                                outputKBMHandler.PerformKeyRelease(ushort.Parse(dcs.action.ToString()));
                                             else if (dcs.actionType == DS4ControlSettings.ActionType.Macro)
                                             {
                                                 int[] keys = (int[])dcs.action.actionMacro;
                                                 for (int j = 0, keysLen = keys.Length; j < keysLen; j++)
-                                                    InputMethods.performKeyRelease((ushort)keys[j]);
+                                                    outputKBMHandler.PerformKeyRelease((ushort)keys[j]);
                                             }
                                         }
                                     }
@@ -3411,17 +3472,22 @@ namespace DS4Windows
                                     {
                                         SyntheticState.KeyPresses kp;
                                         if (!deviceState[device].keyPresses.TryGetValue(key, out kp))
+                                        {
                                             deviceState[device].keyPresses[key] = kp = new SyntheticState.KeyPresses();
+                                            deviceState[device].nativeKeyAlias[key] = (ushort)Global.outputKBMMapping.GetRealEventKey(key);
+                                        }
+
                                         if (action.keyType.HasFlag(DS4KeyType.ScanCode))
                                             kp.current.scanCodeCount++;
                                         else
                                             kp.current.vkCount++;
+
                                         kp.current.repeatCount++;
                                     }
                                     else if (action.keyType.HasFlag(DS4KeyType.ScanCode))
-                                        InputMethods.performSCKeyPress(key);
+                                        outputKBMHandler.PerformKeyPressAlt(key);
                                     else
-                                        InputMethods.performKeyPress(key);
+                                        outputKBMHandler.PerformKeyPress(key);
                                 }
                             }
                             else if (action.typeID == SpecialAction.ActionTypeId.DisconnectBT)
@@ -3552,9 +3618,9 @@ namespace DS4Windows
                                     ushort key;
                                     ushort.TryParse(action.details, out key);
                                     if (action.keyType.HasFlag(DS4KeyType.ScanCode))
-                                        InputMethods.performSCKeyRelease(key);
+                                        outputKBMHandler.PerformKeyReleaseAlt(key);
                                     else
-                                        InputMethods.performKeyRelease(key);
+                                        outputKBMHandler.PerformKeyRelease(key);
                                 }
                             }
                             else if (action.typeID == SpecialAction.ActionTypeId.XboxGameDVR || action.typeID == SpecialAction.ActionTypeId.MultiAction)
@@ -3582,7 +3648,7 @@ namespace DS4Windows
                                 if (previousFieldMapping == null)
                                 {
                                     previousFieldMapping = previousFieldMappings[device];
-                                    previousFieldMapping.populateFieldMapping(tempPrevState, eState, tp, true);
+                                    previousFieldMapping.PopulateFieldMapping(tempPrevState, eState, tp, true);
                                     //previousFieldMapping = new DS4StateFieldMapping(tempPrevState, eState, tp, true);
                                 }
 
@@ -3770,12 +3836,12 @@ namespace DS4Windows
                                 if (dcs.actionType != DS4ControlSettings.ActionType.Default)
                                 {
                                     if (dcs.actionType == DS4ControlSettings.ActionType.Key)
-                                        InputMethods.performKeyRelease((ushort)dcs.action.actionKey);
+                                        outputKBMHandler.PerformKeyRelease((ushort)dcs.action.actionKey);
                                     else if (dcs.actionType == DS4ControlSettings.ActionType.Macro)
                                     {
                                         int[] keys = dcs.action.actionMacro;
                                         for (int j = 0, keysLen = keys.Length; j < keysLen; j++)
-                                            InputMethods.performKeyRelease((ushort)keys[j]);
+                                            outputKBMHandler.PerformKeyRelease((ushort)keys[j]);
                                     }
                                 }
                             }
@@ -3813,12 +3879,12 @@ namespace DS4Windows
                 if (dcs.actionType != DS4ControlSettings.ActionType.Default)
                 {
                     if (dcs.actionType == DS4ControlSettings.ActionType.Key)
-                        InputMethods.performKeyRelease((ushort)dcs.action.actionKey);
+                        outputKBMHandler.PerformKeyRelease((ushort)dcs.action.actionKey);
                     else if (dcs.actionType == DS4ControlSettings.ActionType.Macro)
                     {
                         int[] keys = dcs.action.actionMacro;
                         for (int j = 0, keysLen = keys.Length; j < keysLen; j++)
-                            InputMethods.performKeyRelease((ushort)keys[j]);
+                            outputKBMHandler.PerformKeyRelease((ushort)keys[j]);
                     }
                 }
             }
@@ -3879,7 +3945,7 @@ namespace DS4Windows
             else if(control == DS4Controls.None || !macrodone[DS4ControltoInt(control)])
             {
                 int macroCodeValue;
-                bool[] keydown = new bool[286];
+                bool[] keydown = new bool[512];
 
                 if (control != DS4Controls.None)
                     macrodone[DS4ControltoInt(control)] = true;
@@ -3939,7 +4005,7 @@ namespace DS4Windows
         private static bool PlayMacroCodeValue(int device, bool[] macrocontrol, DS4KeyType keyType, int macroCodeValue, bool[] keydown)
         {
             bool doDelayOnCaller = false;
-            if (macroCodeValue >= 261 && macroCodeValue <= 285)
+            if (macroCodeValue >= 261 && macroCodeValue <= DS4ControlSettings.MAX_MACRO_VALUE)
             {
                 // Gamepad button up or down macro event. macroCodeValue index value is the button identifier (codeValue-261 = idx in 0..24 range)
                 if (!keydown[macroCodeValue])
@@ -3961,15 +4027,18 @@ namespace DS4Windows
                     switch (macroCodeValue)
                     {
                         //anything above 255 is not a keyvalue
-                        case 256: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_LEFTDOWN); break;
-                        case 257: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_RIGHTDOWN); break;
-                        case 258: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_MIDDLEDOWN); break;
-                        case 259: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONDOWN, 1); break;
-                        case 260: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONDOWN, 2); break;
+                        case 256: outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_LEFTDOWN); break;
+                        case 257: outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_RIGHTDOWN); break;
+                        case 258: outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_MIDDLEDOWN); break;
+                        case 259: outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONDOWN, 1); break;
+                        case 260: outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONDOWN, 2); break;
 
                         default:
-                            if (keyType.HasFlag(DS4KeyType.ScanCode)) InputMethods.performSCKeyPress((ushort)macroCodeValue);
-                            else InputMethods.performKeyPress((ushort)macroCodeValue);
+                            uint eventMacroCode = !outputKBMMapping.macroKeyTranslate ? (uint)macroCodeValue :
+                                outputKBMMapping.GetRealEventKey((uint)macroCodeValue);
+
+                            if (keyType.HasFlag(DS4KeyType.ScanCode)) outputKBMHandler.PerformKeyPressAlt(eventMacroCode);
+                            else outputKBMHandler.PerformKeyPress(eventMacroCode);
                             break;
                     }
                     keydown[macroCodeValue] = true;
@@ -3979,15 +4048,18 @@ namespace DS4Windows
                     switch (macroCodeValue)
                     {
                         //anything above 255 is not a keyvalue
-                        case 256: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_LEFTUP); break;
-                        case 257: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_RIGHTUP); break;
-                        case 258: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_MIDDLEUP); break;
-                        case 259: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONUP, 1); break;
-                        case 260: InputMethods.MouseEvent(InputMethods.MOUSEEVENTF_XBUTTONUP, 2); break;
+                        case 256: outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_LEFTUP); break;
+                        case 257: outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_RIGHTUP); break;
+                        case 258: outputKBMHandler.PerformMouseButtonEvent(outputKBMMapping.MOUSEEVENTF_MIDDLEUP); break;
+                        case 259: outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONUP, 1); break;
+                        case 260: outputKBMHandler.PerformMouseButtonEventAlt(outputKBMMapping.MOUSEEVENTF_XBUTTONUP, 2); break;
 
                         default:
-                            if (keyType.HasFlag(DS4KeyType.ScanCode)) InputMethods.performSCKeyRelease((ushort)macroCodeValue);
-                            else InputMethods.performKeyRelease((ushort)macroCodeValue);
+                            uint eventMacroCode = !outputKBMMapping.macroKeyTranslate ? (uint)macroCodeValue :
+                                outputKBMMapping.GetRealEventKey((uint)macroCodeValue);
+
+                            if (keyType.HasFlag(DS4KeyType.ScanCode)) outputKBMHandler.PerformKeyReleaseAlt(eventMacroCode);
+                            else outputKBMHandler.PerformKeyRelease(eventMacroCode);
                             break;
                     }
                     keydown[macroCodeValue] = false;
@@ -4062,7 +4134,7 @@ namespace DS4Windows
             if (altTabDone)
             {
                 altTabDone = false;
-                InputMethods.performKeyPress(18);
+                outputKBMHandler.PerformKeyPress(outputKBMMapping.KEY_TAB);
             }
             else
             {
@@ -4070,8 +4142,8 @@ namespace DS4Windows
                 if (altTabNow >= oldAltTabNow + TimeSpan.FromMilliseconds(wait))
                 {
                     oldAltTabNow = altTabNow;
-                    InputMethods.performKeyPress(9);
-                    InputMethods.performKeyRelease(9);
+                    outputKBMHandler.PerformKeyPress(outputKBMMapping.KEY_TAB);
+                    outputKBMHandler.PerformKeyRelease(outputKBMMapping.KEY_TAB);
                 }
             }
         }
@@ -4081,21 +4153,41 @@ namespace DS4Windows
             if (altTabNow < DateTime.UtcNow - TimeSpan.FromMilliseconds(10)) //in case multiple controls are mapped to alt+tab
             {
                 altTabDone = true;
-                InputMethods.performKeyRelease(9);
-                InputMethods.performKeyRelease(18);
+                outputKBMHandler.PerformKeyRelease(outputKBMMapping.KEY_TAB);
+                outputKBMHandler.PerformKeyRelease(outputKBMMapping.KEY_LALT);
                 altTabNow = DateTime.UtcNow;
                 oldAltTabNow = DateTime.UtcNow - TimeSpan.FromDays(1);
             }
         }
 
-        private static void getMouseWheelMapping(int device, DS4Controls control, DS4State cState,
-            DS4StateExposed eState, Mouse tp, bool down)
+        private static void GetMouseWheelMapping(int device, DS4Controls control, DS4State cState,
+            DS4StateExposed eState, Mouse tp, DS4StateFieldMapping fieldMap, bool down)
         {
             DateTime now = DateTime.UtcNow;
             if (now >= oldnow + TimeSpan.FromMilliseconds(10) && !pressagain)
             {
                 oldnow = now;
-                InputMethods.MouseWheel((int)(getByteMapping(device, control, cState, eState, tp) / 8.0f * (down ? -1 : 1)), 0);
+                byte value = GetByteMapping2(device, control, cState, eState, tp, fieldMap);
+                int wheelDir = down ? Global.outputKBMMapping.WHEEL_TICK_DOWN :
+                    Global.outputKBMMapping.WHEEL_TICK_UP;
+                double ratio = value / 255.0;
+                //Debug.WriteLine(value);
+
+                // Use 4 runs as a full mouse wheel tick
+                double currentWheel = ratio / 4.0;
+                stickWheel = currentWheel + stickWheelRemainder;
+                if (stickWheel >= 1.0)
+                {
+                    int wheelTravel = (int)stickWheel * wheelDir;
+                    outputKBMHandler.PerformMouseWheelEvent(wheelTravel, 0);
+                    stickWheelRemainder = stickWheel - (int)stickWheel;
+                }
+                else
+                {
+                    stickWheelRemainder = stickWheel;
+                }
+
+                stickWheel = 0;
             }
         }
 
@@ -4357,7 +4449,7 @@ namespace DS4Windows
             }
 
             //double mouseXTemp = rawMouseX - (Math.IEEERemainder(rawMouseX * 1000.0, 1.0) / 1000.0);
-            double mouseXTemp = rawMouseX - (remainderCutoff(rawMouseX * 1000.0, 1.0) / 1000.0);
+            double mouseXTemp = rawMouseX - (remainderCutoff(rawMouseX * 100.0, 1.0) / 100.0);
             //double mouseXTemp = rawMouseX - (rawMouseX * 1000.0 - (1.0 * (int)(rawMouseX * 1000.0 / 1.0)));
             mouseX = (int)mouseXTemp;
             horizontalRemainder = mouseXTemp - mouseX;
@@ -4374,7 +4466,7 @@ namespace DS4Windows
             }
 
             //double mouseYTemp = rawMouseY - (Math.IEEERemainder(rawMouseY * 1000.0, 1.0) / 1000.0);
-            double mouseYTemp = rawMouseY - (remainderCutoff(rawMouseY * 1000.0, 1.0) / 1000.0);
+            double mouseYTemp = rawMouseY - (remainderCutoff(rawMouseY * 100.0, 1.0) / 100.0);
             mouseY = (int)mouseYTemp;
             verticalRemainder = mouseYTemp - mouseY;
             //mouseY = (int)rawMouseY;
@@ -4397,7 +4489,17 @@ namespace DS4Windows
             return result;
         }
 
-        private static byte getByteMapping2(int device, DS4Controls control, DS4State cState, DS4StateExposed eState, Mouse tp,
+        /// <summary>
+        /// Translate input value and output a virtual trigger value (0-255, neutral 0)
+        /// </summary>
+        /// <param name="device">Input slot number for DS4Device</param>
+        /// <param name="control">Current control mapped</param>
+        /// <param name="cState">Current input state</param>
+        /// <param name="eState">Exposed input state helper</param>
+        /// <param name="tp">Mouse object</param>
+        /// <param name="fieldMap">DS4StateFieldMapping instance for current MapCustom run</param>
+        /// <returns></returns>
+        private static byte GetByteMapping2(int device, DS4Controls control, DS4State cState, DS4StateExposed eState, Mouse tp,
             DS4StateFieldMapping fieldMap)
         {
             byte result = 0;
@@ -4463,133 +4565,6 @@ namespace DS4Windows
                         result = (byte)(saControls ? Math.Min(255, -gyroZ * 2) : 0);
                         break;
                     }
-                    default: break;
-                }
-            }
-
-            return result;
-        }
-
-        public static byte getByteMapping(int device, DS4Controls control, DS4State cState, DS4StateExposed eState, Mouse tp)
-        {
-            byte result = 0;
-
-            if (control >= DS4Controls.Square && control <= DS4Controls.Cross)
-            {
-                switch (control)
-                {
-                    case DS4Controls.Cross: result = (byte)(cState.Cross ? 255 : 0); break;
-                    case DS4Controls.Square: result = (byte)(cState.Square ? 255 : 0); break;
-                    case DS4Controls.Triangle: result = (byte)(cState.Triangle ? 255 : 0); break;
-                    case DS4Controls.Circle: result = (byte)(cState.Circle ? 255 : 0); break;
-                    default: break;
-                }
-            }
-            else if (control >= DS4Controls.L1 && control <= DS4Controls.R3)
-            {
-                switch (control)
-                {
-                    case DS4Controls.L1: result = (byte)(cState.L1 ? 255 : 0); break;
-                    case DS4Controls.L2: result = cState.L2; break;
-                    case DS4Controls.L3: result = (byte)(cState.L3 ? 255 : 0); break;
-                    case DS4Controls.R1: result = (byte)(cState.R1 ? 255 : 0); break;
-                    case DS4Controls.R2: result = cState.R2; break;
-                    case DS4Controls.R3: result = (byte)(cState.R3 ? 255 : 0); break;
-                    default: break;
-                }
-            }
-            else if (control >= DS4Controls.DpadUp && control <= DS4Controls.DpadLeft)
-            {
-                switch (control)
-                {
-                    case DS4Controls.DpadUp: result = (byte)(cState.DpadUp ? 255 : 0); break;
-                    case DS4Controls.DpadDown: result = (byte)(cState.DpadDown ? 255 : 0); break;
-                    case DS4Controls.DpadLeft: result = (byte)(cState.DpadLeft ? 255 : 0); break;
-                    case DS4Controls.DpadRight: result = (byte)(cState.DpadRight ? 255 : 0); break;
-                    default: break;
-                }
-            }
-            else if (control >= DS4Controls.LXNeg && control <= DS4Controls.RYPos)
-            {
-                switch (control)
-                {
-                    case DS4Controls.LXNeg: result = (byte)(cState.LX - 128.0f >= 0 ? 0 : -(cState.LX - 128.0f) * 1.9921875f); break;
-                    case DS4Controls.LYNeg: result = (byte)(cState.LY - 128.0f >= 0 ? 0 : -(cState.LY - 128.0f) * 1.9921875f); break;
-                    case DS4Controls.RXNeg: result = (byte)(cState.RX - 128.0f >= 0 ? 0 : -(cState.RX - 128.0f) * 1.9921875f); break;
-                    case DS4Controls.RYNeg: result = (byte)(cState.RY - 128.0f >= 0 ? 0 : -(cState.RY - 128.0f) * 1.9921875f); break;
-                    case DS4Controls.LXPos: result = (byte)(cState.LX - 128.0f < 0 ? 0 : (cState.LX - 128.0f) * 2.0078740157480315f); break;
-                    case DS4Controls.LYPos: result = (byte)(cState.LY - 128.0f < 0 ? 0 : (cState.LY - 128.0f) * 2.0078740157480315f); break;
-                    case DS4Controls.RXPos: result = (byte)(cState.RX - 128.0f < 0 ? 0 : (cState.RX - 128.0f) * 2.0078740157480315f); break;
-                    case DS4Controls.RYPos: result = (byte)(cState.RY - 128.0f < 0 ? 0 : (cState.RY - 128.0f) * 2.0078740157480315f); break;
-                    default: break;
-                }
-            }
-            else if (control >= DS4Controls.TouchLeft && control <= DS4Controls.TouchRight)
-            {
-                switch (control)
-                {
-                    case DS4Controls.TouchLeft: result = (byte)(tp != null && tp.leftDown ? 255 : 0); break;
-                    case DS4Controls.TouchRight: result = (byte)(tp != null && tp.rightDown ? 255 : 0); break;
-                    case DS4Controls.TouchMulti: result = (byte)(tp != null && tp.multiDown ? 255 : 0); break;
-                    case DS4Controls.TouchUpper: result = (byte)(tp != null && tp.upperDown ? 255 : 0); break;
-                    default: break;
-                }
-            }
-            else if (control >= DS4Controls.SwipeLeft && control <= DS4Controls.SwipeDown)
-            {
-                switch (control)
-                {
-                    case DS4Controls.SwipeUp: result = (byte)(tp != null ? tp.swipeUpB : 0); break;
-                    case DS4Controls.SwipeDown: result = (byte)(tp != null ? tp.swipeDownB : 0); break;
-                    case DS4Controls.SwipeLeft: result = (byte)(tp != null ? tp.swipeLeftB : 0); break;
-                    case DS4Controls.SwipeRight: result = (byte)(tp != null ? tp.swipeRightB : 0); break;
-                    default: break;
-                }
-            }
-            else if (control >= DS4Controls.GyroXPos && control <= DS4Controls.GyroZNeg)
-            {
-                double SXD = getSXDeadzone(device);
-                double SZD = getSZDeadzone(device);
-                bool saControls = IsUsingSAForControls(device);
-                double sxsens = getSXSens(device);
-                double szsens = getSZSens(device);
-
-                switch (control)
-                {
-                    case DS4Controls.GyroXPos:
-                    {
-                        int gyroX = -eState.AccelX;
-                        result = (byte)(saControls && sxsens * gyroX > SXD * 10 ? Math.Min(255, sxsens * gyroX * 2) : 0);
-                        break;
-                    }
-                    case DS4Controls.GyroXNeg:
-                    {
-                        int gyroX = -eState.AccelX;
-                        result = (byte)(saControls && sxsens * gyroX < -SXD * 10 ? Math.Min(255, sxsens * -gyroX * 2) : 0);
-                        break;
-                    }
-                    case DS4Controls.GyroZPos:
-                    {
-                        int gyroZ = eState.AccelZ;
-                        result = (byte)(saControls && szsens * gyroZ > SZD * 10 ? Math.Min(255, szsens * gyroZ * 2) : 0);
-                        break;
-                    }
-                    case DS4Controls.GyroZNeg:
-                    {
-                        int gyroZ = eState.AccelZ;
-                        result = (byte)(saControls && szsens * gyroZ < -SZD * 10 ? Math.Min(255, szsens * -gyroZ * 2) : 0);
-                        break;
-                    }
-                    default: break;
-                }
-            }
-            else
-            {
-                switch (control)
-                {
-                    case DS4Controls.Share: result = (byte)(cState.Share ? 255 : 0); break;
-                    case DS4Controls.Options: result = (byte)(cState.Options ? 255 : 0); break;
-                    case DS4Controls.PS: result = (byte)(cState.PS ? 255 : 0); break;
                     default: break;
                 }
             }
@@ -4931,7 +4906,18 @@ namespace DS4Windows
             return touchButton;
         }
 
-        private static byte getXYAxisMapping2(int device, DS4Controls control, DS4State cState,
+        /// <summary>
+        /// Translate input value and output as a stick axis value (0-255, neutral 128)
+        /// </summary>
+        /// <param name="device">Input slot number for DS4Device</param>
+        /// <param name="control">Current control mapped</param>
+        /// <param name="cState">Current input state</param>
+        /// <param name="eState">Exposed input state helper</param>
+        /// <param name="tp">Mouse object</param>
+        /// <param name="fieldMap">DS4StateFieldMapping instance for current MapCustom run</param>
+        /// <param name="alt">Consider output a positive axis value</param>
+        /// <returns></returns>
+        private static byte GetXYAxisMapping2(int device, DS4Controls control, DS4State cState,
             DS4StateExposed eState, Mouse tp, DS4StateFieldMapping fieldMap, bool alt = false)
         {
             const byte falseVal = 128;

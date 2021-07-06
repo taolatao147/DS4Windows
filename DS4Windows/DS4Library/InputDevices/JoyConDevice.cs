@@ -343,7 +343,7 @@ namespace DS4Windows.InputDevices
             //short gyroPitch = 0, gyroPitch2 = 0, gyroPitch3 = 0;
             //short gyroRoll = 0, gyroRoll2 = 0, gyroRoll3 = 0;
             short tempShort = 0;
-            int tempAxis = 0;
+            //int tempAxis = 0;
             int tempAxisX = 0;
             int tempAxisY = 0;
 
@@ -358,7 +358,7 @@ namespace DS4Windows.InputDevices
             unchecked
             {
                 firstActive = DateTime.UtcNow;
-                NativeMethods.HidD_SetNumInputBuffers(hDevice.safeReadHandle.DangerousGetHandle(), 2);
+                NativeMethods.HidD_SetNumInputBuffers(hDevice.safeReadHandle.DangerousGetHandle(), 3);
                 Queue<long> latencyQueue = new Queue<long>(21); // Set capacity at max + 1 to avoid any resizing
                 int tempLatencyCount = 0;
                 long oldtime = 0;
@@ -369,14 +369,14 @@ namespace DS4Windows.InputDevices
                 ds4InactiveFrame = true;
                 idleInput = true;
                 bool syncWriteReport = conType != ConnectionType.BT;
-                bool forceWrite = false;
+                //bool forceWrite = false;
 
-                int maxBatteryValue = 0;
+                //int maxBatteryValue = 0;
                 int tempBattery = 0;
                 bool tempCharging = charging;
-                uint tempStamp = 0;
+                //uint tempStamp = 0;
                 double elapsedDeltaTime = 0.0;
-                uint tempDelta = 0;
+                //uint tempDelta = 0;
                 byte tempByte = 0;
                 long latencySum = 0;
 
@@ -491,8 +491,8 @@ namespace DS4Windows.InputDevices
                         cState.Share = (tempByte & 0x01) != 0;
                         cState.L3 = (tempByte & 0x08) != 0;
                         // Capture Button
-                        cState.PS = (tempByte & 0x20) != 0;
-                        //current.Capture = (tempByte & 0x20) != 0;
+                        //cState.PS = (tempByte & 0x20) != 0;
+                        cState.Capture = (tempByte & 0x20) != 0;
 
                         tempByte = inputReportBuffer[5];
                         cState.DpadUp = (tempByte & 0x02) != 0;
@@ -502,8 +502,8 @@ namespace DS4Windows.InputDevices
                         cState.L1 = (tempByte & 0x40) != 0;
                         cState.L2Btn = (tempByte & 0x80) != 0;
                         cState.L2 = (byte)(cState.L2Btn ? 255 : 0);
-                        //current.SL = (tempByte & 0x20) != 0;
-                        //current.SR = (tempByte & 0x10) != 0;
+                        cState.SideL = (tempByte & 0x20) != 0;
+                        cState.SideR = (tempByte & 0x10) != 0;
 
                         stick_raw[0] = inputReportBuffer[6];
                         stick_raw[1] = inputReportBuffer[7];
@@ -531,8 +531,8 @@ namespace DS4Windows.InputDevices
                         cState.R1 = (tempByte & 0x40) != 0;
                         cState.R2Btn = (tempByte & 0x80) != 0;
                         cState.R2 = (byte)(cState.R2Btn ? 255 : 0);
-                        //current.SL = (tempByte & 0x20) != 0;
-                        //current.SR = (tempByte & 0x10) != 0;
+                        cState.SideL = (tempByte & 0x20) != 0;
+                        cState.SideR = (tempByte & 0x10) != 0;
 
                         tempByte = inputReportBuffer[4];
                         cState.Options = (tempByte & 0x02) != 0;
@@ -691,7 +691,7 @@ namespace DS4Windows.InputDevices
                     Report?.Invoke(this, EventArgs.Empty);
                     WriteReport();
 
-                    forceWrite = false;
+                    //forceWrite = false;
 
                     if (!string.IsNullOrEmpty(currerror))
                         error = currerror;
@@ -791,7 +791,7 @@ namespace DS4Windows.InputDevices
         public void SetInitRumble()
         {
             bool result;
-            HidDevice.ReadStatus res;
+            //HidDevice.ReadStatus res;
             //byte[] tmpReport = new byte[64];
             byte[] rumble_data = new byte[8];
             rumble_data[0] = 0x0;
@@ -1378,7 +1378,6 @@ namespace DS4Windows.InputDevices
 
         public override void MergeStateData(DS4State dState)
         {
-
             using (WriteLocker locker = new WriteLocker(lockSlim))
             {
                 if (DeviceType == InputDeviceType.JoyConL)
@@ -1394,11 +1393,14 @@ namespace DS4Windows.InputDevices
                     dState.DpadLeft = cState.DpadLeft;
                     dState.DpadRight = cState.DpadRight;
                     dState.Share = cState.Share;
+                    dState.Capture = cState.Capture;
                     if (primaryDevice)
                     {
                         dState.elapsedTime = cState.elapsedTime;
                         dState.totalMicroSec = cState.totalMicroSec;
                         dState.ReportTimeStamp = cState.ReportTimeStamp;
+                        dState.SideL = cState.SideL;
+                        dState.SideR = cState.SideR;
                     }
 
                     if (outputMapGyro) dState.Motion = cState.Motion;
@@ -1423,6 +1425,8 @@ namespace DS4Windows.InputDevices
                         dState.elapsedTime = cState.elapsedTime;
                         dState.totalMicroSec = cState.totalMicroSec;
                         dState.ReportTimeStamp = cState.ReportTimeStamp;
+                        dState.SideL = cState.SideL;
+                        dState.SideR = cState.SideR;
                     }
 
                     if (outputMapGyro) dState.Motion = cState.Motion;

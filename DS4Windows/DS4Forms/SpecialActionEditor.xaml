@@ -73,6 +73,15 @@
                         <CheckBox x:Name="muteTrigCk" Content="Mute" Tag="Mute" Click="ControlTriggerCheckBox_Click" />
                     </ListViewItem>
                     <ListViewItem>
+                        <CheckBox x:Name="captureTrigCk" Content="Capture" Tag="Capture" Click="ControlTriggerCheckBox_Click" />
+                    </ListViewItem>
+                    <ListViewItem>
+                        <CheckBox x:Name="sideLTrigCk" Content="Side L" Tag="SideL" Click="ControlTriggerCheckBox_Click" />
+                    </ListViewItem>
+                    <ListViewItem>
+                        <CheckBox x:Name="sideRTrigCk" Content="Side R" Tag="SideR" Click="ControlTriggerCheckBox_Click" />
+                    </ListViewItem>
+                    <ListViewItem>
                         <CheckBox x:Name="l1TrigCk" Content="L1" Tag="L1" Click="ControlTriggerCheckBox_Click" />
                     </ListViewItem>
                     <ListViewItem>
@@ -332,7 +341,7 @@
                             <StackPanel Margin="{StaticResource spaceMargin}">
                                 <StackPanel Orientation="Horizontal" Margin="{StaticResource spaceMargin}">
                                     <Label Content="Hold for "></Label>
-                                    <xctk:IntegerUpDown Value="{Binding Delay}" Width="60" Minimum="0" Maximum="60" />
+                                    <xctk:DecimalUpDown Value="{Binding Delay}" Width="60" Minimum="0" Maximum="60" FormatString= "F2" Increment="0.5" />
                                     <Label Content="secs" />
                                 </StackPanel>
                                 <Button x:Name="launchProgBrowseBtn" Content="{lex:Loc Browse}" Margin="{StaticResource spaceMargin}"
@@ -395,7 +404,7 @@
                         <TabItem x:Name="disconnectBTTab" Header="DisBT">
                             <StackPanel Orientation="Horizontal" Margin="{StaticResource spaceMargin}">
                                 <Label Content="Hold for "></Label>
-                                <xctk:IntegerUpDown Value="{Binding HoldInterval}" Width="60" Minimum="0" Maximum="60" />
+                                <xctk:DecimalUpDown Value="{Binding HoldInterval}" Width="60" Minimum="0" Maximum="60" FormatString= "F2" Increment="0.5" />
                                 <Label Content="secs" />
                             </StackPanel>
                         </TabItem>
@@ -403,7 +412,7 @@
                             <StackPanel Margin="{StaticResource spaceMargin}">
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,8">
                                     <Label Content="Hold for "></Label>
-                                    <xctk:IntegerUpDown Value="{Binding Delay}" Width="60" Minimum="0" Maximum="60" />
+                                    <xctk:DecimalUpDown Value="{Binding Delay}" Width="60" Minimum="0" Maximum="60" FormatString= "F2" Increment="0.5"/>
                                     <Label Content="secs" />
                                 </StackPanel>
                                 <CheckBox Content="via notification" IsChecked="{Binding Notification}" Margin="{StaticResource spaceMargin}" />
@@ -453,7 +462,7 @@
                         <TabItem x:Name="sixaxisWheelCalibrateTab" Header="Sixaxis Wheel">
                             <StackPanel Orientation="Horizontal" Margin="{StaticResource spaceMargin}">
                                 <Label Content="Hold for "></Label>
-                                <xctk:IntegerUpDown Value="{Binding Delay}" Width="60" Minimum="0" Maximum="60" />
+                                <xctk:DecimalUpDown Value="{Binding Delay}" Width="60" Minimum="0" Maximum="60" FormatString= "F2" Increment="0.5" />
                                 <Label Content="secs" />
                             </StackPanel>
                         </TabItem>

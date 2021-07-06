@@ -17,6 +17,7 @@ using Microsoft.Win32;
 using NonFormTimer = System.Timers.Timer;
 using DS4WinWPF.DS4Forms.ViewModels;
 using DS4Windows;
+using System.ComponentModel;
 
 namespace DS4WinWPF.DS4Forms
 {
@@ -79,6 +80,7 @@ namespace DS4WinWPF.DS4Forms
             AssignTiltAssociation();
             AssignSwipeAssociation();
             AssignTriggerFullPullAssociation();
+            AssignStickOuterBindAssociation();
             AssignGyroSwipeAssociation();
 
             inputTimer = new NonFormTimer(100);
@@ -202,6 +204,12 @@ namespace DS4WinWPF.DS4Forms
             r2FullPullLb.DataContext = mappingListVM.ControlMap[DS4Controls.R2FullPull];
         }
 
+        private void AssignStickOuterBindAssociation()
+        {
+            lsOuterBindLb.DataContext = mappingListVM.ControlMap[DS4Controls.LSOuter];
+            rsOuterBindLb.DataContext = mappingListVM.ControlMap[DS4Controls.RSOuter];
+        }
+
         private void AssignGyroSwipeAssociation()
         {
             gyroSwipeLeftLb.DataContext = mappingListVM.ControlMap[DS4Controls.GyroSwipeLeft];
@@ -250,30 +258,31 @@ namespace DS4WinWPF.DS4Forms
             hoverIndexes[r2ConBtn] = 15;
             hoverIndexes[l3ConBtn] = 16;
             hoverIndexes[r3ConBtn] = 17;
-            hoverIndexes[leftTouchConBtn] = 18;
-            hoverIndexes[rightTouchConBtn] = 19;
-            hoverIndexes[multiTouchConBtn] = 20;
-            hoverIndexes[topTouchConBtn] = 21;
 
-            hoverIndexes[lsuConBtn] = 22;
-            hoverIndexes[lsdConBtn] = 23;
-            hoverIndexes[lslConBtn] = 24;
-            hoverIndexes[lsrConBtn] = 25;
+            hoverIndexes[leftTouchConBtn] = mappingListVM.ControlIndexMap[DS4Controls.TouchLeft]; // 21
+            hoverIndexes[rightTouchConBtn] = mappingListVM.ControlIndexMap[DS4Controls.TouchRight]; // 22
+            hoverIndexes[multiTouchConBtn] = mappingListVM.ControlIndexMap[DS4Controls.TouchMulti]; // 23
+            hoverIndexes[topTouchConBtn] = mappingListVM.ControlIndexMap[DS4Controls.TouchUpper]; // 24
 
-            hoverIndexes[rsuConBtn] = 26;
-            hoverIndexes[rsdConBtn] = 27;
-            hoverIndexes[rslConBtn] = 28;
-            hoverIndexes[rsrConBtn] = 29;
+            hoverIndexes[lsuConBtn] = 25;
+            hoverIndexes[lsdConBtn] = 26;
+            hoverIndexes[lslConBtn] = 27;
+            hoverIndexes[lsrConBtn] = 28;
 
-            hoverIndexes[gyroZNBtn] = 30;
-            hoverIndexes[gyroZPBtn] = 31;
-            hoverIndexes[gyroXNBtn] = 32;
-            hoverIndexes[gyroXPBtn] = 33;
+            hoverIndexes[rsuConBtn] = 29;
+            hoverIndexes[rsdConBtn] = 30;
+            hoverIndexes[rslConBtn] = 31;
+            hoverIndexes[rsrConBtn] = 32;
 
-            hoverIndexes[swipeUpBtn] = 34;
-            hoverIndexes[swipeDownBtn] = 35;
-            hoverIndexes[swipeLeftBtn] = 36;
-            hoverIndexes[swipeRightBtn] = 37;
+            hoverIndexes[gyroZNBtn] = 33;
+            hoverIndexes[gyroZPBtn] = 34;
+            hoverIndexes[gyroXNBtn] = 35;
+            hoverIndexes[gyroXPBtn] = 36;
+
+            hoverIndexes[swipeUpBtn] = 37;
+            hoverIndexes[swipeDownBtn] = 38;
+            hoverIndexes[swipeLeftBtn] = 39;
+            hoverIndexes[swipeRightBtn] = 40;
         }
 
         private void PopulateHoverLocations()
@@ -636,6 +645,12 @@ namespace DS4WinWPF.DS4Forms
             axialLSStickControl.AxialVM.DeadZoneYChanged += UpdateReadingsLsDeadZoneY;
             axialRSStickControl.AxialVM.DeadZoneXChanged += UpdateReadingsRsDeadZoneX;
             axialRSStickControl.AxialVM.DeadZoneYChanged += UpdateReadingsRsDeadZoneY;
+
+            // Sort special action list by action name
+            CollectionView view = (CollectionView)CollectionViewSource.GetDefaultView(specialActionsVM.ActionCol);
+            view.SortDescriptions.Clear();
+            view.SortDescriptions.Add(new SortDescription("ActionName", ListSortDirection.Ascending));
+            view.Refresh();
 
             if (profileSettingsVM.UseControllerReadout)
             {
@@ -1173,6 +1188,8 @@ namespace DS4WinWPF.DS4Forms
                 SpecialAction action = Global.GetAction(actionName);
                 SpecialActionItem newitem = specialActionsVM.CreateActionItem(action);
                 newitem.Active = true;
+                int lastIdx = specialActionsVM.ActionCol.Count;
+                newitem.Index = lastIdx;
                 specialActionsVM.ActionCol.Add(newitem);
                 specialActionDockPanel.Children.Remove(actEditor);
                 baseSpeActPanel.Visibility = Visibility.Visible;
@@ -1186,8 +1203,11 @@ namespace DS4WinWPF.DS4Forms
         {
             if (specialActionsVM.SpecialActionIndex >= 0)
             {
-                int currentIndex = specialActionsVM.SpecialActionIndex;
-                SpecialActionItem item = specialActionsVM.ActionCol[specialActionsVM.SpecialActionIndex];
+                SpecialActionItem item = specialActionsVM.CurrentSpecialActionItem;
+                int currentIndex = item.Index;
+                //int viewIndex = specialActionsVM.SpecialActionIndex;
+                //int currentIndex = specialActionsVM.ActionCol[viewIndex].Index;
+                //SpecialActionItem item = specialActionsVM.ActionCol[currentIndex];
                 baseSpeActPanel.Visibility = Visibility.Collapsed;
                 ProfileList profList = (Application.Current.MainWindow as MainWindow).ProfileListHolder;
                 SpecialActionEditor actEditor = new SpecialActionEditor(deviceNum, profList, item.SpecialAction);
@@ -1203,6 +1223,7 @@ namespace DS4WinWPF.DS4Forms
                     DS4Windows.SpecialAction action = DS4Windows.Global.GetAction(actionName);
                     SpecialActionItem newitem = specialActionsVM.CreateActionItem(action);
                     newitem.Active = item.Active;
+                    newitem.Index = currentIndex;
                     specialActionsVM.ActionCol.RemoveAt(currentIndex);
                     specialActionsVM.ActionCol.Insert(currentIndex, newitem);
                     specialActionDockPanel.Children.Remove(actEditor);
@@ -1216,7 +1237,9 @@ namespace DS4WinWPF.DS4Forms
         {
             if (specialActionsVM.SpecialActionIndex >= 0)
             {
-                SpecialActionItem item = specialActionsVM.ActionCol[specialActionsVM.SpecialActionIndex];
+                SpecialActionItem item = specialActionsVM.CurrentSpecialActionItem;
+                //int currentIndex = specialActionsVM.ActionCol[specialActionsVM.SpecialActionIndex].Index;
+                //SpecialActionItem item = specialActionsVM.ActionCol[currentIndex];
                 specialActionsVM.RemoveAction(item);
                 Global.CacheExtraProfileInfo(profileSettingsVM.Device);
             }
@@ -1526,6 +1549,25 @@ namespace DS4WinWPF.DS4Forms
 
             profileSettingsVM.UpdateGyroControlsTrig(menu, e.OriginalSource == alwaysOnItem);
         }
+
+        private void StickOuterBindButton_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+            int tag = Convert.ToInt32(btn.Tag);
+            DS4Controls ds4control = (DS4Controls)tag;
+            if (ds4control == DS4Controls.None)
+            {
+                return;
+            }
+
+            //DS4ControlSettings setting = Global.getDS4CSetting(tag, ds4control);
+            MappedControl mpControl = mappingListVM.ControlMap[ds4control];
+            BindingWindow window = new BindingWindow(deviceNum, mpControl.Setting);
+            window.Owner = App.Current.MainWindow;
+            window.ShowDialog();
+            mpControl.UpdateMappingName();
+            Global.CacheProfileCustomsFlags(profileSettingsVM.Device);
+        }
     }
 
     public class ControlIndexCheck
@@ -1541,6 +1583,9 @@ namespace DS4WinWPF.DS4Forms
         public int SwipeRight { get => (int)DS4Controls.SwipeRight; }
         public int L2FullPull { get => (int)DS4Controls.L2FullPull; }
         public int R2FullPull { get => (int)DS4Controls.R2FullPull; }
+
+        public int LSOuterBind { get => (int)DS4Controls.LSOuter; }
+        public int RSOuterBind { get => (int)DS4Controls.RSOuter; }
 
         public int GyroSwipeLeft { get => (int)DS4Controls.GyroSwipeLeft; }
         public int GyroSwipeRight { get => (int)DS4Controls.GyroSwipeRight; }

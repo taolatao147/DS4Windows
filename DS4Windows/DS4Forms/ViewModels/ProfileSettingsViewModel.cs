@@ -580,8 +580,16 @@ namespace DS4WinWPF.DS4Forms.ViewModels
         public bool DInputOnly
         {
             get => Global.DinputOnly[device];
-            set => Global.DinputOnly[device] = value;
+            set
+            {
+                bool temp = Global.DinputOnly[device];
+                if (temp == value) return;
+
+                Global.DinputOnly[device] = value;
+                DInputOnlyChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
+        public EventHandler DInputOnlyChanged;
 
         public bool IdleDisconnectExists
         {
@@ -869,6 +877,12 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             set => Global.LSModInfo[device].maxOutput = value * 100.0;
         }
 
+        public bool LSMaxOutputForce
+        {
+            get => Global.LSModInfo[device].maxOutputForce;
+            set => Global.LSModInfo[device].maxOutputForce = value;
+        }
+
         public double RSVerticalScale
         {
             get => Global.RSModInfo[device].verticalScale / 100.0;
@@ -879,6 +893,12 @@ namespace DS4WinWPF.DS4Forms.ViewModels
         {
             get => Global.RSModInfo[device].maxOutput / 100.0;
             set => Global.RSModInfo[device].maxOutput = value * 100.0;
+        }
+
+        public bool RSMaxOutputForce
+        {
+            get => Global.RSModInfo[device].maxOutputForce;
+            set => Global.RSModInfo[device].maxOutputForce = value;
         }
 
         public int LSDeadTypeIndex
@@ -1005,18 +1025,6 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             }
         }
 
-        public int LSCurve
-        {
-            get => Global.LSCurve[device];
-            set => Global.LSCurve[device] = value;
-        }
-
-        public int RSCurve
-        {
-            get => Global.RSCurve[device];
-            set => Global.RSCurve[device] = value;
-        }
-
         public double LSRotation
         {
             get => Global.LSRotation[device] * 180.0 / Math.PI;
@@ -1098,6 +1106,30 @@ namespace DS4WinWPF.DS4Forms.ViewModels
         {
             get => Global.RSAntiSnapbackInfo[device].timeout;
             set => Global.RSAntiSnapbackInfo[device].timeout = value;
+        }
+
+        public bool LSOuterBindInvert
+        {
+            get => Global.LSModInfo[device].outerBindInvert;
+            set => Global.LSModInfo[device].outerBindInvert = value;
+        }
+
+        public bool RSOuterBindInvert
+        {
+            get => Global.RSModInfo[device].outerBindInvert;
+            set => Global.RSModInfo[device].outerBindInvert = value;
+        }
+
+        public double LSOuterBindDead
+        {
+            get => Global.LSModInfo[device].outerBindDeadZone / 100.0;
+            set => Global.LSModInfo[device].outerBindDeadZone = value * 100.0;
+        }
+
+        public double RSOuterBindDead
+        {
+            get => Global.RSModInfo[device].outerBindDeadZone / 100.0;
+            set => Global.RSModInfo[device].outerBindDeadZone = value * 100.0;
         }
 
         public int LSOutputIndex
@@ -3484,6 +3516,7 @@ namespace DS4WinWPF.DS4Forms.ViewModels
                     if (!(outAct is X360Controls) || defaultControl != (X360Controls)outAct)
                     {
                         setting.UpdateSettings(false, outAct, null, DS4KeyType.None);
+                        Global.RefreshActionAlias(setting, false);
                     }
                 }
 

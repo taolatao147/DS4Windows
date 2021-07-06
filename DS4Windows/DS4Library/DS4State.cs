@@ -10,7 +10,8 @@ namespace DS4Windows
         public bool DpadUp, DpadDown, DpadLeft, DpadRight;
         public bool L1, L2Btn, L3, R1, R2Btn, R3;
         public bool Share, Options, PS, Mute, Touch1, Touch2, TouchButton, TouchRight,
-            TouchLeft, Touch1Finger, Touch2Fingers, OutputTouchButton;
+            TouchLeft, Touch1Finger, Touch2Fingers, OutputTouchButton,
+            Capture, SideL, SideR;
         public byte Touch1Identifier, Touch2Identifier;
         public byte LX, RX, LY, RY, L2, R2;
         public byte FrameCounter; // 0, 1, 2...62, 63, 0....
@@ -24,6 +25,7 @@ namespace DS4Windows
         public double LYUnit;
         public double RXUnit;
         public double RYUnit;
+        public byte OutputLSOuter = 0, OutputRSOuter = 0;
         public double elapsedTime = 0.0;
         public ulong totalMicroSec = 0;
         public ushort ds4Timestamp = 0;
@@ -49,7 +51,9 @@ namespace DS4Windows
             Square = Triangle = Circle = Cross = false;
             DpadUp = DpadDown = DpadLeft = DpadRight = false;
             L1 = L2Btn = L3 = R1 = R2Btn = R3 = false;
-            Share = Options = PS = Mute = Touch1 = Touch2 = TouchButton = OutputTouchButton = TouchRight = TouchLeft = false;
+            Share = Options = PS = Mute = Touch1 = Touch2 = TouchButton =
+                OutputTouchButton = TouchRight = TouchLeft =
+                Capture = SideL = SideR = false;
             Touch1Finger = Touch2Fingers = false;
             LX = RX = LY = RY = 128;
             L2 = R2 = 0;
@@ -71,6 +75,7 @@ namespace DS4Windows
             TrackPadTouch0.IsActive = false;
             TrackPadTouch1.IsActive = false;
             SASteeringWheelEmulationUnit = 0;
+            OutputLSOuter = OutputRSOuter = 0;
         }
 
         public DS4State(DS4State state)
@@ -97,6 +102,9 @@ namespace DS4Windows
             Options = state.Options;
             PS = state.PS;
             Mute = state.Mute;
+            Capture = state.Capture;
+            SideL = state.SideL;
+            SideR = state.SideR;
             Touch1 = state.Touch1;
             TouchRight = state.TouchRight;
             TouchLeft = state.TouchLeft;
@@ -129,6 +137,8 @@ namespace DS4Windows
             TrackPadTouch0 = state.TrackPadTouch0;
             TrackPadTouch1 = state.TrackPadTouch1;
             SASteeringWheelEmulationUnit = state.SASteeringWheelEmulationUnit;
+            OutputLSOuter = state.OutputLSOuter;
+            OutputRSOuter = state.OutputRSOuter;
         }
 
         public DS4State Clone()
@@ -160,6 +170,9 @@ namespace DS4Windows
             state.Options = Options;
             state.PS = PS;
             state.Mute = Mute;
+            state.Capture = Capture;
+            state.SideL = SideL;
+            state.SideR = SideR;
             state.Touch1 = Touch1;
             state.Touch1Identifier = Touch1Identifier;
             state.Touch2 = Touch2;
@@ -192,6 +205,8 @@ namespace DS4Windows
             state.TrackPadTouch0 = TrackPadTouch0;
             state.TrackPadTouch1 = TrackPadTouch1;
             state.SASteeringWheelEmulationUnit = SASteeringWheelEmulationUnit;
+            state.OutputLSOuter = OutputLSOuter;
+            state.OutputRSOuter = OutputRSOuter;
         }
 
         public void calculateStickAngles()

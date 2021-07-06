@@ -114,7 +114,7 @@
                                                           SelectionChanged="SelectProfCombo_SelectionChanged" KeyDown="SelectProfCombo_KeyDown">
                                                     <ComboBox.ItemTemplate>
                                                         <DataTemplate>
-                                                            <TextBlock Text="{Binding Name,Mode=OneTime,FallbackValue=''}" />
+                                                            <TextBlock Text="{Binding Name,Mode=OneWay,FallbackValue=''}" />
                                                         </DataTemplate>
                                                     </ComboBox.ItemTemplate>
                                                 </ComboBox>
@@ -184,6 +184,14 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Image Source="{Binding DeleteProfile, Source={StaticResource ImgLocPaths}}" />
                                     <TextBlock Text="{lex:Loc Delete}" />
+                                </StackPanel>
+                            </Button.Content>
+                        </Button>
+                        <Button x:Name="renameProfBtn" Margin="10,0,0,0" IsEnabled="False" Click="RenameProfBtn_Click">
+                            <Button.Content>
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Source="{Binding EditProfile, Source={StaticResource ImgLocPaths}}" />
+                                    <TextBlock Text="{lex:Loc RenameProfile}" />
                                 </StackPanel>
                             </Button.Content>
                         </Button>
@@ -321,10 +329,7 @@
                             <!--<TextBox Text="0" VerticalAlignment="Center" />-->
                             <xctk:IntegerUpDown d:IsHidden="True" Value="{Binding CheckEvery}" MinWidth="30" Margin="8,0,0,0"
                                             ButtonSpinnerLocation="Right" Increment="1" Maximum="30" Minimum="0" />
-                            <ComboBox SelectedIndex="{Binding CheckEveryUnit,FallbackValue=1}" Margin="8,0,0,0" Foreground="{DynamicResource ForegroundColor}" Template="{DynamicResource ComboBoxControlTemplate1}">
-                                <ComboBox.ItemBindingGroup>
-                                    <BindingGroup/>
-                                </ComboBox.ItemBindingGroup>
+                            <ComboBox SelectedIndex="{Binding CheckEveryUnit,FallbackValue=1}" Margin="8,0,0,0" Foreground="{DynamicResource ForegroundColor}" MinWidth="60">
                                 <ComboBoxItem Content="Hours" />
                                 <ComboBoxItem Content="Days" />
                             </ComboBox>
@@ -402,10 +407,6 @@
                                 <Button x:Name="hidHideBtn" BorderThickness="0" Margin="0,0,4,4" Background="{x:Null}" BorderBrush="{x:Null}"
                                     Style="{StaticResource NoBGHoverBtn}" Click="HidHideBtn_Click" Visibility="{Binding HidHideInstalled, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" >
                                     <TextBlock Text="{lex:Loc HidHideConfigClient}" TextDecorations="Underline" Foreground="{DynamicResource AccentColor}" Cursor="Hand" />
-                                </Button>
-                                <Button x:Name="hidNinjaBtn" BorderThickness="0" Margin="0,0,4,4" Background="{x:Null}" BorderBrush="{x:Null}"
-                                    Style="{StaticResource NoBGHoverBtn}" Click="HidNinjaBtn_Click" Visibility="{Binding HidGuardianInstalled, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
-                                    <TextBlock Text="{lex:Loc HidNinja}" TextDecorations="Underline" Foreground="{DynamicResource AccentColor}" Cursor="Hand" />
                                 </Button>
                                 <Button x:Name="driverSetupBtn" BorderThickness="0" Margin="0,0,4,4" Background="{x:Null}" BorderBrush="{x:Null}"
                                    Style="{StaticResource NoBGHoverBtn}"  Click="DriverSetupBtn_Click">

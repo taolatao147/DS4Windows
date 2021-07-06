@@ -59,7 +59,7 @@ namespace DS4Windows
 
         int tempInt = 0;
         double tempDouble = 0.0;
-        bool tempBool = false;
+        //bool tempBool = false;
 
         public virtual void sixaxisMoved(SixAxisEventArgs arg)
         {
@@ -216,7 +216,7 @@ namespace DS4Windows
                 yAction *= -1;
 
             if (yAction != 0 || xAction != 0)
-                InputMethods.MoveCursorBy(xAction, yAction);
+                Global.outputKBMHandler.MoveRelativeMouse(xAction, yAction);
 
             hDirection = xMotion > 0.0 ? Direction.Positive : xMotion < 0.0 ? Direction.Negative : Direction.Neutral;
             vDirection = yMotion > 0.0 ? Direction.Positive : yMotion < 0.0 ? Direction.Negative : Direction.Neutral;
@@ -316,12 +316,14 @@ namespace DS4Windows
 
             double absX = (currentX * mX - bX) / (double)DS4Touchpad.RESOLUTION_X_MAX;
             double absY = (currentY * mY - bY) / (double)DS4Touchpad.RESOLUTION_Y_MAX;
-            InputMethods.MoveAbsoluteMouse(absX, absY);
+            //InputMethods.MoveAbsoluteMouse(absX, absY);
+            Global.outputKBMHandler.MoveAbsoluteMouse(absX, absY);
         }
 
         public void TouchCenterAbsolute()
         {
-            InputMethods.MoveAbsoluteMouse(0.5, 0.5);
+            //InputMethods.MoveAbsoluteMouse(0.5, 0.5);
+            Global.outputKBMHandler.MoveAbsoluteMouse(0.5, 0.5);
         }
 
         public void TouchMoveCursor(int dx, int dy, bool disableInvert = false)
@@ -424,7 +426,7 @@ namespace DS4Windows
             }
 
             if (yAction != 0 || xAction != 0)
-                InputMethods.MoveCursorBy(xAction, yAction);
+                Global.outputKBMHandler.MoveRelativeMouse(xAction, yAction);
 
             horizontalDirection = xMotion > 0.0 ? Direction.Positive : xMotion < 0.0 ? Direction.Negative : Direction.Neutral;
             verticalDirection = yMotion > 0.0 ? Direction.Positive : yMotion < 0.0 ? Direction.Negative : Direction.Neutral;

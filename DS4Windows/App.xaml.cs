@@ -142,7 +142,7 @@ namespace DS4WinWPF
             threadComEvent = new EventWaitHandle(false, EventResetMode.ManualReset, SingleAppComEventName);
             CreateTempWorkerThread();
 
-            CreateControlService();
+            CreateControlService(parser);
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
             DS4Windows.Global.FindConfigLocation();
@@ -218,11 +218,8 @@ namespace DS4WinWPF
 
             window.CheckMinStatus();
             rootHub.LogDebug($"Running as {(DS4Windows.Global.IsAdministrator() ? "Admin" : "User")}");
-            if (DS4Windows.Global.hidguardInstalled)
-            {
-                rootHub.LaunchHidGuardHelper();
-            }
-            else if (DS4Windows.Global.hidHideInstalled)
+
+            if (DS4Windows.Global.hidHideInstalled)
             {
                 rootHub.CheckHidHidePresence();
             }
@@ -445,15 +442,17 @@ namespace DS4WinWPF
             }
         }
 
-        private void CreateControlService()
+        private void CreateControlService(ArgumentParser parser)
         {
             controlThread = new Thread(() => {
+
                 if (!DS4Windows.Global.IsWin8OrGreater())
                 {
                     ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
                 }
 
-                rootHub = new DS4Windows.ControlService();
+                rootHub = new DS4Windows.ControlService(parser);
+
                 DS4Windows.Program.rootHub = rootHub;
                 requestClient = new HttpClient();
                 collectTimer = new Timer(GarbageTask, null, 30000, 30000);

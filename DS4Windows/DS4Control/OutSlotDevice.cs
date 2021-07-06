@@ -36,8 +36,19 @@ namespace DS4WinWPF.DS4Control
         private int index;
         public int Index => index;
 
+        /// <summary>
+        /// Connection status of virtual output controller
+        /// </summary>
         public AttachedStatus CurrentAttachedStatus { get => attachedStatus; }
+
+        /// <summary>
+        /// Reference to output controller
+        /// </summary>
         public OutputDevice OutputDevice { get => outputDevice; }
+
+        /// <summary>
+        /// Flag stating the connection preference of an output controller
+        /// </summary>
         public ReserveStatus CurrentReserveStatus
         {
             get => reserveStatus;
@@ -50,6 +61,9 @@ namespace DS4WinWPF.DS4Control
         }
         public event EventHandler CurrentReserveStatusChanged;
 
+        /// <summary>
+        /// Whether an input controller is associated with the slot
+        /// </summary>
         public InputBound CurrentInputBound
         {
             get => inputBound;
@@ -62,18 +76,28 @@ namespace DS4WinWPF.DS4Control
         }
         public event EventHandler CurrentInputBoundChanged;
 
+        /// <summary>
+        /// Desired device type for a permanently connected slot
+        /// </summary>
         public OutContType PermanentType
         {
             get => permanentType;
             set
             {
                 if (permanentType == value) return;
+
+                if(value != OutContType.None)
+                    AppLogger.LogToGui($"Output slot #{this.index+1} has permanent type {value}", false);
+
                 permanentType = value;
                 PermanentTypeChanged?.Invoke(this, EventArgs.Empty);
             }
         }
         public event EventHandler PermanentTypeChanged;
 
+        /// <summary>
+        /// Device type of the current output controller
+        /// </summary>
         public OutContType CurrentType { get => currentType; set => currentType = value; }
 
         public OutSlotDevice(int idx)

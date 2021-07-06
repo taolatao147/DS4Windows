@@ -15,13 +15,14 @@
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <ServerGarbageCollection>true</ServerGarbageCollection>
-    <AssemblyVersion>3.0.5</AssemblyVersion>
-    <FileVersion>3.0.5</FileVersion>
-    <Version>3.0.5</Version>
+    <AssemblyVersion>3.0.11</AssemblyVersion>
+    <FileVersion>3.0.11</FileVersion>
+    <Version>3.0.11</Version>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <Copyright>Copyright © Scarlet.Crush Productions 2012, 2013; InhexSTER, HecticSeptic, electrobrains 2013, 2014; Jays2Kings 2013, 2014, 2015, 2016; Ryochan7 2017, 2018, 2019, 2020, 2021</Copyright>
     <Description>Sony DualShock 4 to Microsoft Xinput controller mapper</Description>
+    <Authors>Ryochan7</Authors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -53,8 +54,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="libs\x64\**" />
-    <None Remove="libs\x86\**" />
+    <None Remove="libs\x64\**" Condition="'$(Platform)' != 'x64'" />
+    <None Remove="libs\x86\**" Condition="'$(Platform)' != 'x86'" />
     <Compile Remove="DS4Control\DS4OutDevices\**" />
     <Compile Remove="DS4Control\DS4OutDevice.cs" />
     <Compile Remove="DS4Control\Xbox360OutDevice.cs" />
@@ -79,16 +80,18 @@
     <PackageReference Include="System.Management" Version="5.0.0" />
     <PackageReference Include="TaskScheduler" Version="2.9.1" />
     <PackageReference Include="WPFLocalizeExtension" Version="3.8.0" />
+
+    <Reference Include="FakerInputWrapper">
+      <HintPath>..\libs\$(Platform)\FakerInputWrapper\FakerInputWrapper.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Resources\social\bitchute.png" />
     <Resource Include="Resources\social\bittube.png" />
 	<Resource Include="Resources\social\GitHub-Mark-Light-64px.png" />
     <Resource Include="Resources\social\GitHub-Mark-64px.png" />
     <Resource Include="Resources\social\mastodon.png" />
     <Resource Include="Resources\social\minds.png" />
-    <Resource Include="Resources\social\parler.png" />
     <Resource Include="Resources\social\twitter_logo_initial.png" />
     <Resource Include="Resources\social\youtube_social_icon_red.png" />
 
@@ -179,6 +182,12 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Update="Properties\Resources.ja.resx">
+      <DependentUpon>Resources.resx</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Properties\Resources.ru.resx">
+      <DependentUpon>Resources.resx</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -247,6 +256,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="libs\$(Platform)\FakerInputWrapper\FakerInputDll.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>FakerInputDll.dll</Link>
+    </None>
     <None Update="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -23,9 +23,12 @@ namespace DS4Windows
         public const int DEFAULT_ANTIDEADZONE = 20;
         public const int DEFAULT_MAXZONE = 100;
         public const double DEFAULT_MAXOUTPUT = 100.0;
+        public const bool DEFAULT_MAXOUTPUT_FORCE = false;
         public const int DEFAULT_FUZZ = 0;
         public const DeadZoneType DEFAULT_DEADZONE_TYPE = DeadZoneType.Radial;
         public const double DEFAULT_VERTICAL_SCALE = 100.0;
+        public const double DEFAULT_OUTER_BIND_DEAD = 75.0;
+        public const bool DEFAULT_OUTER_BIND_INVERT = false;
 
         public class AxisDeadZoneInfo
         {
@@ -49,9 +52,12 @@ namespace DS4Windows
         public int antiDeadZone;
         public int maxZone = DEFAULT_MAXZONE;
         public double maxOutput = DEFAULT_MAXOUTPUT;
+        public bool maxOutputForce = DEFAULT_MAXOUTPUT_FORCE;
         public int fuzz = DEFAULT_FUZZ;
         public double verticalScale = DEFAULT_VERTICAL_SCALE;
         public DeadZoneType deadzoneType = DEFAULT_DEADZONE_TYPE;
+        public double outerBindDeadZone = DEFAULT_OUTER_BIND_DEAD;
+        public bool outerBindInvert = DEFAULT_OUTER_BIND_INVERT;
         public AxisDeadZoneInfo xAxisDeadInfo = new AxisDeadZoneInfo();
         public AxisDeadZoneInfo yAxisDeadInfo = new AxisDeadZoneInfo();
 
@@ -61,9 +67,13 @@ namespace DS4Windows
             antiDeadZone = 0;
             maxZone = DEFAULT_MAXZONE;
             maxOutput = DEFAULT_MAXOUTPUT;
+            maxOutputForce = DEFAULT_MAXOUTPUT_FORCE;
+
             fuzz = DEFAULT_FUZZ;
             verticalScale = DEFAULT_VERTICAL_SCALE;
             deadzoneType = DEFAULT_DEADZONE_TYPE;
+            outerBindDeadZone = DEFAULT_OUTER_BIND_DEAD;
+            outerBindInvert = DEFAULT_OUTER_BIND_INVERT;
             xAxisDeadInfo.Reset();
             yAxisDeadInfo.Reset();
         }
@@ -778,6 +788,12 @@ namespace DS4Windows
             triggerEffect = DEFAULT_TRIGGER_EFFECT;
             TwoStageModeChanged?.Invoke(this, EventArgs.Empty);
             TriggerEffectChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void ResetEvents()
+        {
+            TwoStageModeChanged = null;
+            TriggerEffectChanged = null;
         }
     }
 }

@@ -70,7 +70,7 @@ namespace DS4Windows.InputDevices
                         break;
                     case TriggerEffects.FullClick:
                         triggerMotorMode = 0x02;
-                        triggerStartResistance = 0xA4;
+                        triggerStartResistance = 0x94;
                         triggerEffectForce = 0xB4;
                         triggerRangeForce = 0xFF;
                         triggerNearReleaseStrength = 0x00;
@@ -376,7 +376,7 @@ namespace DS4Windows.InputDevices
             unchecked
             {
                 firstActive = DateTime.UtcNow;
-                NativeMethods.HidD_SetNumInputBuffers(hDevice.safeReadHandle.DangerousGetHandle(), 2);
+                NativeMethods.HidD_SetNumInputBuffers(hDevice.safeReadHandle.DangerousGetHandle(), 3);
                 Queue<long> latencyQueue = new Queue<long>(21); // Set capacity at max + 1 to avoid any resizing
                 int tempLatencyCount = 0;
                 long oldtime = 0;
@@ -387,7 +387,7 @@ namespace DS4Windows.InputDevices
                 ds4InactiveFrame = true;
                 idleInput = true;
                 bool syncWriteReport = conType != ConnectionType.BT;
-                bool forceWrite = false;
+                //bool forceWrite = false;
 
                 int maxBatteryValue = 0;
                 int tempBattery = 0;
@@ -811,7 +811,7 @@ namespace DS4Windows.InputDevices
                     }
 
                     outputDirty = false;
-                    forceWrite = false;
+                    //forceWrite = false;
 
                     if (!string.IsNullOrEmpty(currerror))
                         error = currerror;

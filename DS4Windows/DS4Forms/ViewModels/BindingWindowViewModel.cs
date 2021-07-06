@@ -368,11 +368,11 @@ namespace DS4WinWPF.DS4Forms.ViewModels
                 {
                     color =  Colors.LimeGreen.ToString();
                 }
-                /*else
+                else
                 {
-                    color = SystemColors.ControlBrush.Color.ToString();
+                    color = Application.Current.FindResource("SecondaryColor").ToString();
+                    //color = SystemColors.ControlBrush.Color.ToString();
                 }
-                */
 
                 return color;
             }
@@ -387,11 +387,11 @@ namespace DS4WinWPF.DS4Forms.ViewModels
                 {
                     color = Colors.LimeGreen.ToString();
                 }
-                /*else
+                else
                 {
-                    color = SystemColors.ControlBrush.Color.ToString();
+                    color = Application.Current.FindResource("SecondaryColor").ToString();
+                    //color = SystemColors.ControlBrush.Color.ToString();
                 }
-                */
 
                 return color;
             }
@@ -608,6 +608,8 @@ namespace DS4WinWPF.DS4Forms.ViewModels
                 {
                     settings.extras = string.Empty;
                 }
+
+                Global.RefreshActionAlias(settings, shiftBind);
             }
             else
             {
@@ -670,6 +672,8 @@ namespace DS4WinWPF.DS4Forms.ViewModels
                 {
                     settings.shiftExtras = string.Empty;
                 }
+
+                Global.RefreshActionAlias(settings, shiftBind);
             }
         }
 
