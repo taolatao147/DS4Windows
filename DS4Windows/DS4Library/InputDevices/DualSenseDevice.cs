@@ -59,7 +59,7 @@ namespace DS4Windows.InputDevices
             public byte triggerPressedStrength;
             public byte triggerActuationFrequency;
 
-            public void ChangeData(TriggerEffects effect)
+            public void ChangeData(TriggerEffects effect, TriggerEffectSettings effectSettings)
             {
                 switch (effect)
                 {
@@ -69,9 +69,14 @@ namespace DS4Windows.InputDevices
                             triggerPressedStrength = triggerActuationFrequency = 0;
                         break;
                     case TriggerEffects.FullClick:
+                        int tempStartResValue = Math.Max((int)effectSettings.maxValue, 0);
+                        //Debug.WriteLine(tempStartResValue);
                         triggerMotorMode = 0x02;
-                        triggerStartResistance = 0x94;
-                        triggerEffectForce = 0xB4;
+                        //triggerStartResistance = 0x94;
+                        triggerStartResistance = (byte)(0x94 * (tempStartResValue / 255.0));
+                        //triggerEffectForce = 0xB4;
+                        triggerEffectForce = (byte)((0xB4 - triggerStartResistance) * (effectSettings.maxValue / 255.0) + triggerStartResistance);
+                        //Debug.WriteLine(triggerEffectForce);
                         triggerRangeForce = 0xFF;
                         triggerNearReleaseStrength = 0x00;
                         triggerNearMiddleStrength = 0x00;
@@ -550,6 +555,8 @@ namespace DS4Windows.InputDevices
                     cState.L2 = inputReport[5 + reportOffset];
                     cState.R2 = inputReport[6 + reportOffset];
 
+                    // DS4 Frame Counter range is [0-127]. DS version range is [0-255]. Convert
+                    cState.FrameCounter = (byte)(inputReport[7 + reportOffset] % 128);
                     tempByte = inputReport[8 + reportOffset];
                     cState.Triangle = (tempByte & (1 << 7)) != 0;
                     cState.Circle = (tempByte & (1 << 6)) != 0;
@@ -589,7 +596,6 @@ namespace DS4Windows.InputDevices
                     cState.TouchButton = (tempByte & 0x02) != 0;
                     cState.OutputTouchButton = cState.TouchButton;
                     cState.Mute = (tempByte & (1 << 2)) != 0;
-                    //cState.FrameCounter = (byte)(tempByte >> 2);
 
                     if ((this.featureSet & VidPidFeatureSet.NoBatteryReading) == 0)
                     {
@@ -1301,15 +1307,15 @@ namespace DS4Windows.InputDevices
             }
         }
 
-        public override void PrepareTriggerEffect(TriggerId trigger, TriggerEffects effect)
+        public override void PrepareTriggerEffect(TriggerId trigger, TriggerEffects effect, TriggerEffectSettings effectSettings)
         {
             if (trigger == TriggerId.LeftTrigger)
             {
-                l2EffectData.ChangeData(effect);
+                l2EffectData.ChangeData(effect, effectSettings);
             }
             else if (trigger == TriggerId.RightTrigger)
             {
-                r2EffectData.ChangeData(effect);
+                r2EffectData.ChangeData(effect, effectSettings);
             }
             else
             {

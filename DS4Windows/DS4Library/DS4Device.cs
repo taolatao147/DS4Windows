@@ -874,7 +874,9 @@ namespace DS4Windows
                 ds4Input.Start();
             }
             else
-                Console.WriteLine("Thread already running for DS4: " + Mac);
+            {
+                Debug.WriteLine("Thread already running for DS4: " + Mac);
+            }
         }
 
         public virtual void StopUpdate()
@@ -1076,6 +1078,7 @@ namespace DS4Windows
 
         protected const int BT_INPUT_REPORT_CRC32_POS = 74; //last 4 bytes of the 78-sized input report are crc32
         public const uint DefaultPolynomial = 0xedb88320u;
+        private const int CRC32_NUM_ATTEMPTS = 10;
         protected uint HamSeed = 2351727372;
 
         protected unsafe void performDs4Input()
@@ -1137,7 +1140,8 @@ namespace DS4Windows
                     readWaitEv.Set();
 
                     // Sony DS4 and compatible gamepads send data packets with 0x11 type code in BT mode. 
-                    // However, couple non-Sony gamepads behave like USB devices in BT mode also, so if OnlyInputData0x01 is set then BT specific crc32 checks are not calculated.
+                    // Will no longer support any third party fake DS4 that does not behave according to official DS4 specs
+                    //if (conType == ConnectionType.BT)
                     if (conType == ConnectionType.BT && (this.featureSet & VidPidFeatureSet.OnlyInputData0x01) == 0)
                     {
                         //HidDevice.ReadStatus res = hDevice.ReadFile(btInputReport);
@@ -1170,24 +1174,32 @@ namespace DS4Windows
 
                                 cState.PacketCounter = pState.PacketCounter + 1; //still increase so we know there were lost packets
 
-                                // If the incoming data packet doesn't have the native DS4 type (0x11) in BT mode then the gamepad sends PC-friendly 0x01 data packets even in BT mode. Switch over to accept 0x01 data packets in BT mode.
-                                if (this.inputReportErrorCount >= 10)
+                                // If the incoming data packet does not have the native DS4 type or CRC-32 checks keep failing. Fail out and disconnect controller.
+                                if (this.inputReportErrorCount >= CRC32_NUM_ATTEMPTS)
                                 {
-                                    if (btInputReport[0] == 0x01)
-                                    {
-                                        this.inputReportErrorCount = 0;
-                                        this.ModifyFeatureSetFlag(VidPidFeatureSet.OnlyInputData0x01, true);
-                                        AppLogger.LogToGui(Mac.ToString() + " switching over to accept PC-friendly data packets in BT mode", false);
-                                    }
+                                    AppLogger.LogToGui($"{Mac.ToString()} failed CRC-32 checks {CRC32_NUM_ATTEMPTS} times. Disconnecting", false);
+
+                                    readWaitEv.Reset();
+                                    sendOutputReport(true, true); // Kick Windows into noticing the disconnection.
+                                    StopOutputUpdate();
+                                    isDisconnecting = true;
+                                    Removal?.Invoke(this, EventArgs.Empty);
+
+                                    timeoutExecuted = true;
+                                    return;
                                 }
                                 else
+                                {
                                     this.inputReportErrorCount++;
+                                }
 
                                 readWaitEv.Reset();
                                 continue;
                             }
                             else
+                            {
                                 this.inputReportErrorCount = 0;
+                            }
                         }
                         else
                         {
@@ -1251,6 +1263,7 @@ namespace DS4Windows
                     lastTimeElapsed = (long)lastTimeElapsedDouble;
                     oldtime = curtime;
 
+                    // Not going to do featureSet check anymore
                     if (conType == ConnectionType.BT && btInputReport[0] != 0x11 && (this.featureSet & VidPidFeatureSet.OnlyInputData0x01) == 0)
                     {
                         //Received incorrect report, skip it
@@ -1328,11 +1341,11 @@ namespace DS4Windows
                         }
 
                         cState.Battery = (byte)battery;
-                        //System.Diagnostics.Debug.WriteLine("CURRENT BATTERY: " + (inputReport[30] & 0x0f) + " | " + tempBattery + " | " + battery);
+                        //Debug.WriteLine("CURRENT BATTERY: " + (inputReport[30] & 0x0f) + " | " + tempBattery + " | " + battery);
                         if (tempByte != priorInputReport30)
                         {
                             priorInputReport30 = tempByte;
-                            //Console.WriteLine(MacAddress.ToString() + " " + System.DateTime.UtcNow.ToString("o") + "> power subsystem octet: 0x" + inputReport[30].ToString("x02"));
+                            //Debug.WriteLine(MacAddress.ToString() + " " + System.DateTime.UtcNow.ToString("o") + "> power subsystem octet: 0x" + inputReport[30].ToString("x02"));
                         }
                     }
                     else
@@ -1440,6 +1453,8 @@ namespace DS4Windows
                     // Store Gyro and Accel values
                     //Array.Copy(inputReport, 13, gyro, 0, 6);
                     //Array.Copy(inputReport, 19, accel, 0, 6);
+
+                    // Store Gyro and Accel values. Use pointers here as it seems faster than using Array.Copy
                     fixed (byte* pbInput = &inputReport[13], pbGyro = gyro, pbAccel = accel)
                     {
                         for (int i = 0; i < 6; i++)
@@ -1461,9 +1476,12 @@ namespace DS4Windows
                     /* Debug output of incoming HID data:
                     if (cState.L2 == 0xff && cState.R2 == 0xff)
                     {
-                        Console.Write(MacAddress.ToString() + " " + System.DateTime.UtcNow.ToString("o") + ">");
+                        Debug.Write(MacAddress.ToString() + " " + System.DateTime.UtcNow.ToString("o") + ">");
                         for (int i = 0; i < inputReport.Length; i++)
-                            Console.Write(" " + inputReport[i].ToString("x2"));
+                        {
+                            Debug.Write(" " + inputReport[i].ToString("x2"));
+                        }
+
                         Console.WriteLine();
                     }
                     */
@@ -2108,7 +2126,7 @@ namespace DS4Windows
         }
 
         public virtual void PrepareTriggerEffect(InputDevices.TriggerId trigger,
-            InputDevices.TriggerEffects effect)
+            InputDevices.TriggerEffects effect, InputDevices.TriggerEffectSettings effectSettings)
         {
         }
 

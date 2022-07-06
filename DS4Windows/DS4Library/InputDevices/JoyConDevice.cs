@@ -246,6 +246,11 @@ namespace DS4Windows.InputDevices
             }
         }
 
+        /// <summary>
+        /// Flag to tell methods if device has been successfully initialized and opened
+        /// </summary>
+        private bool connectionOpened = false;
+
         public override event ReportHandler<EventArgs> Report = null;
         public override event EventHandler<EventArgs> Removal = null;
         public override event EventHandler BatteryChanged;
@@ -260,6 +265,13 @@ namespace DS4Windows.InputDevices
             DeviceSlotNumberChanged += (sender, e) => {
                 CalculateDeviceSlotMask();
             };
+
+            Removal += JoyConDevice_Removal;
+        }
+
+        private void JoyConDevice_Removal(object sender, EventArgs e)
+        {
+            connectionOpened = false;
         }
 
         private JoyConSide DetermineSideType()
@@ -316,9 +328,23 @@ namespace DS4Windows.InputDevices
         public override void StartUpdate()
         {
             this.inputReportErrorCount = 0;
-            SetOperational();
 
-            if (ds4Input == null)
+            try
+            {
+                SetOperational();
+            }
+            catch (System.IO.IOException)
+            {
+                AppLogger.LogToGui($"Controller {MacAddress} failed to initialize. Closing device", true);
+            }
+
+            if (!connectionOpened)
+            {
+                // Failed to open device. Tell app to consider device detached
+                isDisconnecting = true;
+                Removal?.Invoke(this, EventArgs.Empty);
+            }
+            else if (ds4Input == null)
             {
                 ds4Input = new Thread(ReadInput);
                 ds4Input.IsBackground = true;
@@ -452,6 +478,8 @@ namespace DS4Windows.InputDevices
 
                     utcNow = DateTime.UtcNow; // timestamp with UTC in case system time zone changes
                     cState.PacketCounter = pState.PacketCounter + 1;
+                    // DS4 Frame Counter range is [0-127]
+                    cState.FrameCounter = (byte)(cState.PacketCounter % 128);
                     cState.ReportTimeStamp = utcNow;
 
                     cState.elapsedTime = combLatency;
@@ -778,6 +806,8 @@ namespace DS4Windows.InputDevices
             //    Thread.Sleep(300);
             //    //SetInitRumble();
             //}
+
+            connectionOpened = true;
         }
 
         private void EnableFastPollRate()
@@ -833,7 +863,7 @@ namespace DS4Windows.InputDevices
             hDevice.fileStream.Flush();
 
             byte[] tmpReport = null;
-            if (checkResponse)
+            if (result && checkResponse)
             {
                 tmpReport = new byte[INPUT_REPORT_LEN];
                 HidDevice.ReadStatus res;
@@ -881,7 +911,7 @@ namespace DS4Windows.InputDevices
 
         public override bool IsAlive()
         {
-            return !isDisconnecting;
+            return !isDisconnecting && connectionOpened;
         }
 
         public void PrepareRumbleData(byte[] buffer)
@@ -996,12 +1026,14 @@ namespace DS4Windows.InputDevices
                 else
                 {
                     leftStickXData.max = (ushort)((leftStickCalib[0] + leftStickCalib[2]) * STICK_AXIS_LS_X_MAX_CUTOFF);
-                    leftStickXData.mid = leftStickCalib[2];
                     leftStickXData.min = (ushort)((leftStickCalib[2] - leftStickCalib[4]) * STICK_AXIS_LS_X_MIN_CUTOFF);
+                    //leftStickXData.mid = leftStickCalib[2];
+                    leftStickXData.mid = (ushort)((leftStickXData.max - leftStickXData.min) / 2.0 + leftStickXData.min);
 
                     leftStickYData.max = (ushort)((leftStickCalib[1] + leftStickCalib[3]) * STICK_AXIS_LS_Y_MAX_CUTOFF);
-                    leftStickYData.mid = leftStickCalib[3];
                     leftStickYData.min = (ushort)((leftStickCalib[3] - leftStickCalib[5]) * STICK_AXIS_LS_Y_MIN_CUTOFF);
+                    //leftStickYData.mid = leftStickCalib[3];
+                    leftStickYData.mid = (ushort)((leftStickYData.max - leftStickYData.min) / 2.0 + leftStickYData.min);
                     //leftStickOffsetX = leftStickOffsetY = 140;
                 }
 
@@ -1064,12 +1096,14 @@ namespace DS4Windows.InputDevices
                 else
                 {
                     rightStickXData.max = (ushort)((rightStickCalib[2] + rightStickCalib[0]) * STICK_AXIS_RS_X_MAX_CUTOFF);
-                    rightStickXData.mid = rightStickCalib[2];
                     rightStickXData.min = (ushort)((rightStickCalib[2] - rightStickCalib[4]) * STICK_AXIS_RS_X_MIN_CUTOFF);
+                    //rightStickXData.mid = rightStickCalib[2];
+                    rightStickXData.mid = (ushort)((rightStickXData.max - rightStickXData.min) / 2.0 + rightStickXData.min);
 
                     rightStickYData.max = (ushort)((rightStickCalib[3] + rightStickCalib[1]) * STICK_AXIS_RS_Y_MAX_CUTOFF);
-                    rightStickYData.mid = rightStickCalib[3];
                     rightStickYData.min = (ushort)((rightStickCalib[3] - rightStickCalib[5]) * STICK_AXIS_RS_Y_MIN_CUTOFF);
+                    //rightStickYData.mid = rightStickCalib[3];
+                    rightStickYData.mid = (ushort)((rightStickYData.max - rightStickYData.min) / 2.0 + rightStickYData.min);
                     //rightStickOffsetX = rightStickOffsetY = 140;
                 }
 
@@ -1258,17 +1292,22 @@ namespace DS4Windows.InputDevices
         {
             //bool result;
 
-            // Disable Gyro
-            byte[] tmpOffBuffer = new byte[] { 0x0 };
-            Subcommand(0x40, tmpOffBuffer, 1, checkResponse: true);
+            if (connectionOpened)
+            {
+                // Disable Gyro
+                byte[] tmpOffBuffer = new byte[] { 0x0 };
+                Subcommand(0x40, tmpOffBuffer, 1, checkResponse: true);
 
-            // Possibly disable rumble? Leave commented
-            tmpOffBuffer = new byte[] { 0x0 };
-            Subcommand(0x48, tmpOffBuffer, 1, checkResponse: true);
+                // Possibly disable rumble? Leave commented
+                tmpOffBuffer = new byte[] { 0x0 };
+                Subcommand(0x48, tmpOffBuffer, 1, checkResponse: true);
 
-            // Revert back to low power state
-            byte[] powerChoiceArray = new byte[] { 0x01 };
-            Subcommand(SwitchProSubCmd.SET_LOW_POWER_STATE, powerChoiceArray, 1, checkResponse: true);
+                // Revert back to low power state
+                byte[] powerChoiceArray = new byte[] { 0x01 };
+                Subcommand(SwitchProSubCmd.SET_LOW_POWER_STATE, powerChoiceArray, 1, checkResponse: true);
+            }
+
+            connectionOpened = false;
         }
 
         private void CalculateDeviceSlotMask()

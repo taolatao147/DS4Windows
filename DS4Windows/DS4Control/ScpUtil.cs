@@ -63,7 +63,10 @@ namespace DS4Windows
 
     public class ControlActionData
     {
+        // Store base mapping value. Uses Windows virtual key values as the base
+        // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
         public int actionKey;
+
         // Alias to real value for current output KB+M event system.
         // Allows skipping a translation call every frame
         public uint actionAlias = 0;
@@ -81,15 +84,9 @@ namespace DS4Windows
         public enum ActionType : byte { Default, Key, Button, Macro };
         public ActionType actionType = ActionType.Default;
         public ControlActionData action = new ControlActionData();
-        // Alias to real value for current output KB+M event system.
-        // Allows skipping a translation call every frame
-        //public uint actionAlias = 0;
 
         public ActionType shiftActionType = ActionType.Default;
         public ControlActionData shiftAction = new ControlActionData();
-        // Alias to real value for current output KB+M event system.
-        // Allows skipping a translation call every frame
-        //public uint shiftActionAlias = 0;
         public int shiftTrigger = 0;
         public string shiftExtras = null;
         public DS4KeyType shiftKeyType = DS4KeyType.None;
@@ -440,6 +437,7 @@ namespace DS4Windows
         public const int TEST_PROFILE_ITEM_COUNT = MAX_DS4_CONTROLLER_COUNT + 1;
         public const int TEST_PROFILE_INDEX = TEST_PROFILE_ITEM_COUNT - 1;
         public const int OLD_XINPUT_CONTROLLER_COUNT = 4;
+        public const byte DS4_STICK_AXIS_MIDPOINT = 128;
 
         public static CultureInfo configFileDecimalCulture = new CultureInfo("en-US"); // Loading and Saving decimal values in configuration files should always use en-US decimal format (ie. dot char as decimal separator char, not comma char)
 
@@ -2661,6 +2659,11 @@ namespace DS4Windows
             fakerInputVersion = FakerInputVersion();
         }
 
+        /// <summary>
+        /// Take Windows virtual key value and refresh action alias for currently used output KB+M system
+        /// </summary>
+        /// <param name="setting">Instance of edited DS4ControlSettings object</param>
+        /// <param name="shift">Flag to indicate if shift action is being modified</param>
         public static void RefreshActionAlias(DS4ControlSettings setting, bool shift)
         {
             if (!shift)
@@ -2695,6 +2698,8 @@ namespace DS4Windows
     {
         public const double DEFAULT_UDP_SMOOTH_MINCUTOFF = 0.4;
         public const double DEFAULT_UDP_SMOOTH_BETA = 0.2;
+        // Use 15 minutes for default Idle Disconnect when initially enabling the option
+        public const int DEFAULT_ENABLE_IDLE_DISCONN_MINS = 15;
 
         public String m_Profile = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName + "\\Profiles.xml";
         public String m_Actions = Global.appdatapath + "\\Actions.xml";
@@ -3600,6 +3605,8 @@ namespace DS4Windows
                 XmlNode xmlGyroMStickHAxis = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickHAxis", null); xmlGyroMStickHAxis.InnerText = gyroMouseStickHorizontalAxis[device].ToString(); rootElement.AppendChild(xmlGyroMStickHAxis);
                 XmlNode xmlGyroMStickDZ = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickDeadZone", null); xmlGyroMStickDZ.InnerText = gyroMStickInfo[device].deadZone.ToString(); rootElement.AppendChild(xmlGyroMStickDZ);
                 XmlNode xmlGyroMStickMaxZ = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickMaxZone", null); xmlGyroMStickMaxZ.InnerText = gyroMStickInfo[device].maxZone.ToString(); rootElement.AppendChild(xmlGyroMStickMaxZ);
+                XmlNode xmlGyroMStickOutputStick = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickOutputStick", null); xmlGyroMStickOutputStick.InnerText = gyroMStickInfo[device].outputStick.ToString(); rootElement.AppendChild(xmlGyroMStickOutputStick);
+                XmlNode xmlGyroMStickOutputStickAxes = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickOutputStickAxes", null); xmlGyroMStickOutputStickAxes.InnerText = gyroMStickInfo[device].outputStickDir.ToString(); rootElement.AppendChild(xmlGyroMStickOutputStickAxes);
                 XmlNode xmlGyroMStickAntiDX = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickAntiDeadX", null); xmlGyroMStickAntiDX.InnerText = gyroMStickInfo[device].antiDeadX.ToString(); rootElement.AppendChild(xmlGyroMStickAntiDX);
                 XmlNode xmlGyroMStickAntiDY = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickAntiDeadY", null); xmlGyroMStickAntiDY.InnerText = gyroMStickInfo[device].antiDeadY.ToString(); rootElement.AppendChild(xmlGyroMStickAntiDY);
                 XmlNode xmlGyroMStickInvert = m_Xdoc.CreateNode(XmlNodeType.Element, "GyroMouseStickInvert", null); xmlGyroMStickInvert.InnerText = gyroMStickInfo[device].inverted.ToString(); rootElement.AppendChild(xmlGyroMStickInvert);
@@ -4202,7 +4209,14 @@ namespace DS4Windows
                 try { Item = m_Xdoc.SelectSingleNode("/" + rootname + "/touchToggle"); Boolean.TryParse(Item.InnerText, out enableTouchToggle[device]); }
                 catch { missingSetting = true; }
 
-                try { Item = m_Xdoc.SelectSingleNode("/" + rootname + "/idleDisconnectTimeout"); Int32.TryParse(Item.InnerText, out idleDisconnectTimeout[device]); }
+                try
+                {
+                    Item = m_Xdoc.SelectSingleNode("/" + rootname + "/idleDisconnectTimeout");
+                    if (int.TryParse(Item?.InnerText ?? "", out int temp))
+                    {
+                        idleDisconnectTimeout[device] = temp;
+                    }
+                }
                 catch { missingSetting = true; }
 
                 try { Item = m_Xdoc.SelectSingleNode("/" + rootname + "/outputDataToDS4"); Boolean.TryParse(Item.InnerText, out enableOutputDataToDS4[device]); }
@@ -5036,6 +5050,26 @@ namespace DS4Windows
                     gyroMStickInfo[device].maxZone = Math.Max(temp, 1);
                 }
                 catch { gyroMStickInfo[device].maxZone = 830; missingSetting = true; }
+
+                try
+                {
+                    Item = m_Xdoc.SelectSingleNode("/" + rootname + "/GyroMouseStickOutputStick");
+                    if (Enum.TryParse(Item?.InnerText ?? "", out GyroMouseStickInfo.OutputStick temp))
+                    {
+                        gyroMStickInfo[device].outputStick = temp;
+                    }
+                }
+                catch { }
+
+                try
+                {
+                    Item = m_Xdoc.SelectSingleNode("/" + rootname + "/GyroMouseStickOutputStickAxes");
+                    if (Enum.TryParse(Item?.InnerText ?? "", out GyroMouseStickInfo.OutputStickAxes temp))
+                    {
+                        gyroMStickInfo[device].outputStickDir = temp;
+                    }
+                }
+                catch { }
 
                 try
                 {
@@ -7125,10 +7159,12 @@ namespace DS4Windows
             lsModInfo[device].maxOutput = rsModInfo[device].maxOutput = 100.0;
             lsModInfo[device].fuzz = rsModInfo[device].fuzz = StickDeadZoneInfo.DEFAULT_FUZZ;
 
-            l2ModInfo[device].deadZone = r2ModInfo[device].deadZone = 0;
-            l2ModInfo[device].antiDeadZone = r2ModInfo[device].antiDeadZone = 0;
-            l2ModInfo[device].maxZone = r2ModInfo[device].maxZone = 100;
-            l2ModInfo[device].maxOutput = r2ModInfo[device].maxOutput = 100.0;
+            //l2ModInfo[device].deadZone = r2ModInfo[device].deadZone = 0;
+            //l2ModInfo[device].antiDeadZone = r2ModInfo[device].antiDeadZone = 0;
+            //l2ModInfo[device].maxZone = r2ModInfo[device].maxZone = 100;
+            //l2ModInfo[device].maxOutput = r2ModInfo[device].maxOutput = 100.0;
+            l2ModInfo[device].Reset();
+            r2ModInfo[device].Reset();
 
             LSRotation[device] = 0.0;
             RSRotation[device] = 0.0;

@@ -58,24 +58,6 @@ namespace DS4WinWPF.DS4Forms.ViewModels
         }
         public event EventHandler LightbarModeIndexChanged;
 
-        public Visibility DS4WinLightVisible
-        {
-            get
-            {
-                Visibility temp = Visibility.Visible;
-                switch(Global.LightbarSettingsInfo[device].Mode)
-                {
-                    case LightbarMode.DS4Win:
-                        temp = Visibility.Visible; break;
-                    case LightbarMode.Passthru:
-                        temp = Visibility.Collapsed; break;
-                }
-
-                return temp;
-            }
-        }
-        public event EventHandler DS4WinLightVisibleChanged;
-
         public System.Windows.Media.Brush LightbarBrush
         {
             get
@@ -596,7 +578,11 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             get => Global.IdleDisconnectTimeout[device] != 0;
             set
             {
-                Global.IdleDisconnectTimeout[device] = value ? 5 * 60 : 0;
+                // If enabling Idle Disconnect, set default time.
+                // Otherwise, set time to 0 to mean disabled
+                Global.IdleDisconnectTimeout[device] = value ?
+                    BackingStore.DEFAULT_ENABLE_IDLE_DISCONN_MINS * 60 : 0;
+
                 IdleDisconnectChanged?.Invoke(this, EventArgs.Empty);
                 IdleDisconnectExistsChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -1318,14 +1304,14 @@ namespace DS4WinWPF.DS4Forms.ViewModels
 
         public double L2MaxZone
         {
-            get => Global.L2ModInfo[device].maxZone / 100.0;
-            set => Global.L2ModInfo[device].maxZone = (int)(value * 100.0);
+            get => Global.L2ModInfo[device].MaxZone / 100.0;
+            set => Global.L2ModInfo[device].MaxZone = (int)(value * 100.0);
         }
 
         public double R2MaxZone
         {
-            get => Global.R2ModInfo[device].maxZone / 100.0;
-            set => Global.R2ModInfo[device].maxZone = (int)(value * 100.0);
+            get => Global.R2ModInfo[device].MaxZone / 100.0;
+            set => Global.R2ModInfo[device].MaxZone = (int)(value * 100.0);
         }
 
         public double L2AntiDeadZone
@@ -1342,14 +1328,14 @@ namespace DS4WinWPF.DS4Forms.ViewModels
 
         public double L2MaxOutput
         {
-            get => Global.L2ModInfo[device].maxOutput / 100.0;
-            set => Global.L2ModInfo[device].maxOutput = value * 100.0;
+            get => Global.L2ModInfo[device].MaxOutput / 100.0;
+            set => Global.L2ModInfo[device].MaxOutput = value * 100.0;
         }
 
         public double R2MaxOutput
         {
-            get => Global.R2ModInfo[device].maxOutput / 100.0;
-            set => Global.R2ModInfo[device].maxOutput = value * 100.0;
+            get => Global.R2ModInfo[device].MaxOutput / 100.0;
+            set => Global.R2ModInfo[device].MaxOutput = value * 100.0;
         }
 
         public double L2Sens
@@ -2162,6 +2148,26 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             set => Global.GyroMouseStickInf[device].maxZone = value;
         }
 
+        public int GyroMouseStickOutputStick
+        {
+            get => (int)Global.GyroMouseStickInf[device].outputStick;
+            set
+            {
+                Global.GyroMouseStickInf[device].outputStick =
+                    (GyroMouseStickInfo.OutputStick)value;
+            }
+        }
+
+        public int GyroMouseStickOutputAxes
+        {
+            get => (int)Global.GyroMouseStickInf[device].outputStickDir;
+            set
+            {
+                Global.GyroMouseStickInf[device].outputStickDir =
+                    (GyroMouseStickInfo.OutputStickAxes)value;
+            }
+        }
+
         public double GyroMouseStickAntiDeadX
         {
             get => Global.GyroMouseStickInf[device].antiDeadX * 100.0;
@@ -2498,11 +2504,6 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             {
                 OutputMouseSpeed = CalculateOutputMouseSpeed(ButtonMouseSensitivity);
                 MouseOffsetSpeed = RawButtonMouseOffset * OutputMouseSpeed;
-            };
-
-            LightbarModeIndexChanged += (sender, args) =>
-            {
-                DS4WinLightVisibleChanged?.Invoke(this, EventArgs.Empty);
             };
 
             GyroOutModeIndexChanged += CalcProfileFlags;

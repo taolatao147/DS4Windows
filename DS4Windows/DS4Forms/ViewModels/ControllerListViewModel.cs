@@ -84,16 +84,23 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             }
         }
 
-        private void Service_HotplugController(ControlService sender, DS4Device device, int index)
+        private void Service_HotplugController(ControlService sender,
+            DS4Device device, int index)
         {
-            CompositeDeviceModel temp = new CompositeDeviceModel(device,
-                index, Global.ProfilePath[index], profileListHolder);
-            _colListLocker.EnterWriteLock();
-            controllerCol.Add(temp);
-            controllerDict.Add(index, temp);
-            _colListLocker.ExitWriteLock();
+            // Engage write lock pre-maturely
+            using (WriteLocker readLock = new WriteLocker(_colListLocker))
+            {
+                // Look if device exists. Also, check if disconnect might be occurring
+                if (!controllerDict.ContainsKey(index) && !device.IsRemoving)
+                {
+                    CompositeDeviceModel temp = new CompositeDeviceModel(device,
+                        index, Global.ProfilePath[index], profileListHolder);
+                    controllerCol.Add(temp);
+                    controllerDict.Add(index, temp);
 
-            device.Removal += Controller_Removal;
+                    device.Removal += Controller_Removal;
+                }
+            }
         }
 
         private void ClearControllerList(object sender, EventArgs e)
@@ -130,8 +137,8 @@ namespace DS4WinWPF.DS4Forms.ViewModels
                     }
                     _colListLocker.ExitReadLock();
 
-
-                    if (!found)
+                    // Check for new device. Also, check if disconnect might be occurring
+                    if (!found && !currentDev.IsRemoving)
                     {
                         //int idx = controllerCol.Count;
                         _colListLocker.EnterWriteLock();

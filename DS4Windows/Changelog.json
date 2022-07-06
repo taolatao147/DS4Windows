@@ -1,9 +1,110 @@
 {
-  "latest_version": "3.0.13",
-  "latest_version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 13},
-  "updated_at": "2021-07-07T20:16:18+0000",
+  "latest_version": "3.0.18",
+  "latest_version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 18},
+  "updated_at": "2021-08-17T18:46:29+0000",
   "changelog": {
     "versions": [
+    {
+      "version_str": "3.0.18",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 18},
+      "base_header": "Version 3.0.18",
+      "release_date": "2021-08-17T18:46:29+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.18",
+          "log_text": ["* Added output Stick and Axis options for Gyro Mouse Joystick",
+            "* Use TabControl to contain gyro output panels. Simplifies XAML",
+            "* Re-enabled DS4 emulation support"],
+          "editor": "ryochan7",
+          "editors_note": ["Can't have nice things like a functioning society"],
+          "updated_at": "2021-08-17T18:46:29+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.17",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 17},
+      "base_header": "Version 3.0.17",
+      "release_date": "2021-08-16T04:18:45+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.17",
+          "log_text": ["* Added fake DS4 FrameCounter field for DualSense, Switch Pro and JoyCon devices",
+            "* Increased default Idle Disconnect time to 15 min",
+            "* Disabled DS4 controller emulation support. Can't have nice things",
+            "* Only perform output slot lookup in virtual device plugin routine when emulating a controller",
+            "* Check for device removal status before adding device to main view list. Fixes initial Switch Pro disconnect on hotplug when controller battery is dead"],
+          "editor": "ryochan7",
+          "editors_note": ["Tired of this crap"],
+          "updated_at": "2021-08-16T04:18:45+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.16",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 16},
+      "base_header": "Version 3.0.16",
+      "release_date": "2021-08-09T02:07:23+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.16",
+          "log_text": ["* Changed mapper to copy timestamp data from original input state object. Used for DS4 Gyro Passthru"],
+          "editor": "ryochan7",
+          "editors_note": ["Tired of everything"],
+          "updated_at": "2021-08-09T02:07:23+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.15",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 15},
+      "base_header": "Version 3.0.15",
+      "release_date": "2021-08-07T17:34:17+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.15",
+          "log_text": ["* Changed ControllerListViewModel locking strategy for non-Sony DS4s that might fail the initial handshake",
+            "* Removed OnlyInputData0x01 hack for fake DS4 controllers (fake DS4 using Sony VID+PID combo)",
+            "* No longer provide support for knockoff fake DS4 controllers",
+            "* Changed Lightbar TabItem in Profile Editor to use embedded TabControl",
+            "* Added warning text for Lightbar Passthru mode stating the old feature is currently disabled",
+            "* Fixed combo box cutoff in Dark theme. Contribution by **Sajidur78**",
+            "* Updated Brazilian Portuguese translation pack. Contribution by **nelitow**"],
+          "editor": "ryochan7",
+          "editors_note": ["Tired of problems"],
+          "updated_at": "2021-08-07T17:34:17+0000"
+        }
+      ]
+    },
+    {
+      "version_str": "3.0.14",
+      "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 14},
+      "base_header": "Version 3.0.14",
+      "release_date": "2021-08-04T01:48:11+0000",
+      "locales": [
+        {
+          "code": "en",
+          "header": "Version 3.0.14",
+          "log_text": ["* Updated FakerInputWrapper libraries for F13 - F24 key support",
+            "* Added F13 to F24 keys for FakerInput mapping",
+            "* Decreased button wheel delta. Increased button wheel sensitivity. Now uses 150 ms for time delta",
+            "* Updated FakerInputWrapper libraries. Fixes array bounds check for KeyboardReport",
+            "* Fixes for Stick Outer Btn bindings",
+            "* Added ManagementException catch for initial connection. Apparently it can be thrown in that call.",
+            "* Expanded max output limits for LS and RS",
+            "* Re-design dark theme and use theme colors in AutoProfiles. Contribution by **Sajidur78**",
+            "* Changed DualSense trigger Full Click resistance depending on profile settings",
+            "* Changes to better handle connection failure for Switch Pro and JoyCon devices"],
+          "editor": "ryochan7",
+          "editors_note": ["Need update"],
+          "updated_at": "2021-08-04T01:48:11+0000"
+        }
+      ]
+    },
     {
       "version_str": "3.0.13",
       "version_number_info": {"majorPart": 3, "minorPart": 0, "buildPart": 13},

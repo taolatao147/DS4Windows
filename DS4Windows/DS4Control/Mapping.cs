@@ -560,7 +560,7 @@ namespace DS4Windows
             if (wheel != 0) //Continue mouse wheel movement
             {
                 DateTime now = DateTime.UtcNow;
-                if (now >= oldnow + TimeSpan.FromMilliseconds(200) && !pressagain)
+                if (now >= oldnow + TimeSpan.FromMilliseconds(150) && !pressagain)
                 {
                     oldnow = now;
                     outputKBMHandler.PerformMouseWheelEvent(wheel, 0);
@@ -839,7 +839,13 @@ namespace DS4Windows
                         if (lsMaxOutput != 100.0 || lsMod.maxOutputForce)
                         {
                             double maxOutXRatio = Math.Abs(Math.Cos(r)) * maxOutRatio;
+                            // Expand output a bit
+                            maxOutXRatio = Math.Min(maxOutXRatio / 0.99, 1.0);
+
                             double maxOutYRatio = Math.Abs(Math.Sin(r)) * maxOutRatio;
+                            // Expand output a bit
+                            maxOutYRatio = Math.Min(maxOutYRatio / 0.99, 1.0);
+
                             tempOutputX = Math.Min(Math.Max(tempOutputX, 0.0), maxOutXRatio);
                             tempOutputY = Math.Min(Math.Max(tempOutputY, 0.0), maxOutYRatio);
                         }
@@ -885,20 +891,22 @@ namespace DS4Windows
 
                     if (hyp != 0.0)
                     {
-                        int maxValue = r >= 0.0 ? 127 : 128;
+                        int tempX = (int)(Math.Abs(Math.Cos(r)) * (dState.LX >= 128 ? 127 : 128));
+                        int tempY = (int)(Math.Abs(Math.Sin(r)) * (dState.LY >= 128 ? 127 : 128));
+                        double maxValue = Math.Sqrt((tempX * tempX) + (tempY * tempY));
                         double ratio = hyp / maxValue;
                         if (ratio > 1.0) ratio = 1.0;
-                        double currentValue = ratio * 255;
+                        double currentValue = ratio * 255.0;
                         double deadValue = lsMod.outerBindDeadZone * 0.01 * 255.0;
                         if (!lsMod.outerBindInvert && currentValue > deadValue)
                         {
-                            double outputRatio = (currentValue - deadValue) / (double)(maxValue - deadValue);
+                            double outputRatio = (currentValue - deadValue) / (double)(255.0 - deadValue);
                             dState.OutputLSOuter = (byte)(outputRatio * 255);
                         }
                         else if (lsMod.outerBindInvert && currentValue < deadValue)
                         {
                             double outputRatio = (deadValue - currentValue) / (double)deadValue;
-                            dState.OutputRSOuter = (byte)(outputRatio * 255);
+                            dState.OutputLSOuter = (byte)(outputRatio * 255);
                         }
                     }
                 }
@@ -929,6 +937,8 @@ namespace DS4Windows
 
                         if (xAxisDeadInfo.maxOutput != 100.0)
                         {
+                            // Expand output a bit
+                            maxOutRatio = Math.Min(maxOutRatio / 0.99, 1.0);
                             tempOutput = Math.Min(Math.Max(tempOutput, 0.0), maxOutRatio);
                         }
 
@@ -973,6 +983,8 @@ namespace DS4Windows
 
                         if (yAxisDeadInfo.maxOutput != 100.0)
                         {
+                            // Expand output a bit
+                            maxOutRatio = Math.Min(maxOutRatio / 0.99, 1.0);
                             tempOutput = Math.Min(Math.Max(tempOutput, 0.0), maxOutRatio);
                         }
 
@@ -1062,7 +1074,13 @@ namespace DS4Windows
                         if (rsMaxOutput != 100.0 || rsMod.maxOutputForce)
                         {
                             double maxOutXRatio = Math.Abs(Math.Cos(r)) * maxOutRatio;
+                            // Expand output a bit
+                            maxOutXRatio = Math.Min(maxOutXRatio / 0.99, 1.0);
+
                             double maxOutYRatio = Math.Abs(Math.Sin(r)) * maxOutRatio;
+                            // Expand output a bit
+                            maxOutYRatio = Math.Min(maxOutYRatio / 0.99, 1.0);
+
                             tempOutputX = Math.Min(Math.Max(tempOutputX, 0.0), maxOutXRatio);
                             tempOutputY = Math.Min(Math.Max(tempOutputY, 0.0), maxOutYRatio);
                         }
@@ -1108,14 +1126,16 @@ namespace DS4Windows
 
                     if (hyp != 0.0)
                     {
-                        int maxValue = r >= 0.0 ? 127 : 128;
+                        int tempX = (int)(Math.Abs(Math.Cos(r)) * (dState.RX >= 128 ? 127 : 128));
+                        int tempY = (int)(Math.Abs(Math.Sin(r)) * (dState.RY >= 128 ? 127 : 128));
+                        double maxValue = Math.Sqrt((tempX * tempX) + (tempY * tempY));
                         double ratio = hyp / maxValue;
                         if (ratio > 1.0) ratio = 1.0;
                         double currentValue = ratio * 255;
                         double deadValue = rsMod.outerBindDeadZone * 0.01 * 255.0;
                         if (!rsMod.outerBindInvert && currentValue > deadValue)
                         {
-                            double outputRatio = (currentValue - deadValue) / (double)(maxValue - deadValue);
+                            double outputRatio = (currentValue - deadValue) / (double)(255.0 - deadValue);
                             dState.OutputRSOuter = (byte)(outputRatio * 255);
                         }
                         else if (rsMod.outerBindInvert && currentValue < deadValue)
@@ -1152,6 +1172,8 @@ namespace DS4Windows
 
                         if (xAxisDeadInfo.maxOutput != 100.0)
                         {
+                            // Expand output a bit
+                            maxOutRatio = Math.Min(maxOutRatio / 0.99, 1.0);
                             tempOutput = Math.Min(Math.Max(tempOutput, 0.0), maxOutRatio);
                         }
 
@@ -1196,6 +1218,8 @@ namespace DS4Windows
 
                         if (yAxisDeadInfo.maxOutput != 100.0)
                         {
+                            // Expand output a bit
+                            maxOutRatio = Math.Min(maxOutRatio / 0.99, 1.0);
                             tempOutput = Math.Min(Math.Max(tempOutput, 0.0), maxOutRatio);
                         }
 
@@ -2256,7 +2280,8 @@ namespace DS4Windows
                     ref tempMouseDeltaY, ctrl);
             }
 
-            if (GyroOutputMode[device] == GyroOutMode.DirectionalSwipe)
+            GyroOutMode imuOutMode = Global.GetGyroOutMode(device);
+            if (imuOutMode == GyroOutMode.DirectionalSwipe)
             {
                 DS4ControlSettings gyroSwipeXDcs = null;
                 DS4ControlSettings gyroSwipeYDcs = null;
@@ -2408,27 +2433,68 @@ namespace DS4Windows
                 MappedState.SASteeringWheelEmulationUnit = Mapping.Scale360degreeGyroAxis(device, eState, ctrl);
             }
 
-            ref byte gyroTempX = ref gyroStickX[device];
-            if (gyroTempX != 128)
+            if (imuOutMode == GyroOutMode.MouseJoystick)
             {
-                if (MappedState.RX != 128)
-                    MappedState.RX = Math.Abs(gyroTempX - 128) > Math.Abs(MappedState.RX - 128) ?
-                        gyroTempX : MappedState.RX;
-                else
-                    MappedState.RX = gyroTempX;
-            }
+                GyroMouseStickInfo msinfo = Global.GetGyroMouseStickInfo(device);
+                if (msinfo.outputStick != GyroMouseStickInfo.OutputStick.None)
+                {
+                    ref byte gyroTempX = ref gyroStickX[device];
+                    if (msinfo.OutputHorizontal() && gyroTempX != 128)
+                    {
+                        byte outputStickXVal = msinfo.outputStick == GyroMouseStickInfo.OutputStick.RightStick ?
+                            MappedState.RX : MappedState.LX;
+                        byte tempAxisVal = 128;
 
-            ref byte gyroTempY = ref gyroStickY[device];
-            if (gyroTempY != 128)
-            {
-                if (MappedState.RY != 128)
-                    MappedState.RY = Math.Abs(gyroTempY - 128) > Math.Abs(MappedState.RY - 128) ?
-                        gyroTempY : MappedState.RY;
-                else
-                    MappedState.RY = gyroTempY;
-            }
+                        if (outputStickXVal != 128)
+                        {
+                            tempAxisVal = Math.Abs(gyroTempX - 128) > Math.Abs(outputStickXVal - 128) ?
+                                gyroTempX : outputStickXVal;
+                        }
+                        else
+                        {
+                            tempAxisVal = gyroTempX;
+                        }
 
-            gyroTempX = gyroTempY = 128;
+                        if (msinfo.outputStick ==
+                            GyroMouseStickInfo.OutputStick.RightStick)
+                        {
+                            MappedState.RX = tempAxisVal;
+                        }
+                        else if (msinfo.outputStick ==
+                            GyroMouseStickInfo.OutputStick.LeftStick)
+                        {
+                            MappedState.LX = tempAxisVal;
+                        }
+                    }
+
+                    ref byte gyroTempY = ref gyroStickY[device];
+                    if (msinfo.OutputVertical() && gyroTempY != 128)
+                    {
+                        byte outputStickYVal = msinfo.outputStick == GyroMouseStickInfo.OutputStick.RightStick ?
+                            MappedState.RY : MappedState.LY;
+                        byte tempAxisVal = 128;
+
+                        if (outputStickYVal != 128)
+                            tempAxisVal = Math.Abs(gyroTempY - 128) > Math.Abs(outputStickYVal - 128) ?
+                                gyroTempY : outputStickYVal;
+                        else
+                            tempAxisVal = gyroTempY;
+
+                        if (msinfo.outputStick ==
+                            GyroMouseStickInfo.OutputStick.RightStick)
+                        {
+                            MappedState.RY = tempAxisVal;
+                        }
+                        else if (msinfo.outputStick ==
+                            GyroMouseStickInfo.OutputStick.LeftStick)
+                        {
+                            MappedState.LY = tempAxisVal;
+                        }
+                    }
+
+                    gyroTempX = gyroTempY = 128;
+                }
+            }
 
             calculateFinalMouseMovement(ref tempMouseDeltaX, ref tempMouseDeltaY,
                 out mouseDeltaX, out mouseDeltaY);
