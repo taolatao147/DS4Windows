@@ -1691,11 +1691,8 @@ Suspend support not enabled.", true);
 
         private void HidHideBtn_Click(object sender, RoutedEventArgs e)
         {
-            string driveLetter = System.IO.Path.GetPathRoot(Global.exedirpath);
-            string path = System.IO.Path.Combine(driveLetter, "Program Files",
-                "Nefarius Software Solutions e.U", "HidHideClient", "HidHideClient.exe");
-
-            if (File.Exists(path))
+            string path = Util.GetHidHideClientPath();
+            if (!string.IsNullOrEmpty(path))
             {
                 try
                 {

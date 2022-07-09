@@ -264,7 +264,15 @@ namespace DS4Windows
         {
             string attemptVirtualkbmHandler = cmdParser.VirtualkbmHandler;
             Global.InitOutputKBMHandler(attemptVirtualkbmHandler);
-            if (!Global.outputKBMHandler.Connect() &&
+
+            bool handlerConnected = false;
+            try
+            {
+                handlerConnected = Global.outputKBMHandler.Connect();
+            }
+            catch { }
+
+            if (!handlerConnected &&
                 attemptVirtualkbmHandler != VirtualKBMFactory.GetFallbackHandlerIdentifier())
             {
                 Global.outputKBMHandler = VirtualKBMFactory.GetFallbackHandler();
@@ -376,10 +384,7 @@ namespace DS4Windows
 
         public void PrepareDS4DeviceInit(DS4Device device)
         {
-            if (!Global.IsWin8OrGreater())
-            {
-                device.BTOutputMethod = DS4Device.BTOutputReportMethod.HidD_SetOutputReport;
-            }
+            // Does nothing now
         }
 
         public CheckVirtualInfo CheckForVirtualDevice(string deviceInstanceId)
