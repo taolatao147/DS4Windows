@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
 using Task = Microsoft.Win32.TaskScheduler.Task;
 
@@ -15,7 +11,6 @@ namespace DS4WinWPF
     {
         public static string lnkpath = Environment.GetFolderPath(Environment.SpecialFolder.Startup) + "\\DS4Windows.lnk";
         private static string taskBatPath = Path.Combine(DS4Windows.Global.exedirpath, "task.bat");
-        private const string net5SubKey = @"SOFTWARE\dotnet\Setup\InstalledVersions";
 
         public static bool HasStartProgEntry()
         {
@@ -136,25 +131,6 @@ namespace DS4WinWPF
         {
             string lnkprogpath = ResolveShortcut(lnkpath);
             return lnkprogpath != DS4Windows.Global.exelocation;
-        }
-
-        public static Version NetVersionInstalled()
-        {
-            Version result = new Version("0.0.0");
-            string archLookup = Environment.Is64BitProcess ? "x64" : "x86";
-            using (RegistryKey baseKey = Registry.LocalMachine.OpenSubKey($@"{net5SubKey}\{archLookup}\sharedhost"))
-            {
-                if (baseKey != null)
-                {
-                    string tempVersion = baseKey.GetValue("Version")?.ToString() ?? string.Empty;
-                    if (!string.IsNullOrEmpty(tempVersion))
-                    {
-                        result = new Version(tempVersion);
-                    }
-                }
-            }
-
-            return result;
         }
 
         public static void LaunchOldTask()

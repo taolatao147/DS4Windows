@@ -564,7 +564,7 @@ namespace DS4Windows
         protected GyroMouseSens gyroMouseSensSettings;
         public virtual GyroMouseSens GyroMouseSensSettings { get => gyroMouseSensSettings; }
 
-        protected int deviceSlotNumber = -1;
+        protected int deviceSlotNumber = DEFAULT_JOINT_SLOT_NUMBER;
         public int DeviceSlotNumber
         {
             get => deviceSlotNumber;
@@ -1170,6 +1170,8 @@ namespace DS4Windows
                     cState.RY = inputReport[4];
                     cState.L2 = inputReport[8];
                     cState.R2 = inputReport[9];
+                    cState.L2Raw = cState.L2;
+                    cState.R2Raw = cState.R2;
 
                     tempByte = inputReport[5];
                     cState.Triangle = (tempByte & (1 << 7)) != 0;

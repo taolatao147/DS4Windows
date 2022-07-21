@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 using System.Windows.Threading;
-using Microsoft.Win32;
 using System.Linq;
 using System.Text;
 using Sensorit.Base;
@@ -62,7 +61,7 @@ namespace DS4Windows
         Thread eventDispatchThread;
         Dispatcher eventDispatcher;
         public bool suspending;
-        //SoundPlayer sp = new SoundPlayer();
+
         private UdpServer _udpServer;
         private OutputSlotManager outputslotMan;
 
@@ -86,8 +85,8 @@ namespace DS4Windows
 
         private byte[][] udpOutBuffers = new byte[UdpServer.NUMBER_SLOTS][]
         {
-            new byte[100], new byte[100],
-            new byte[100], new byte[100],
+            new byte[UdpServer.DATA_RSP_PACKET_LEN], new byte[UdpServer.DATA_RSP_PACKET_LEN],
+            new byte[UdpServer.DATA_RSP_PACKET_LEN], new byte[UdpServer.DATA_RSP_PACKET_LEN],
         };
 
         void GetPadDetailForIdx(int padIdx, ref DualShockPadMeta meta)
@@ -97,7 +96,7 @@ namespace DS4Windows
             meta.Model = DsModel.DS4;
 
             var d = DS4Controllers[padIdx];
-            if (d == null || !d.PrimaryDevice)
+            if (d == null)
             {
                 meta.PadMacAddress = null;
                 meta.PadState = DsState.Disconnected;
@@ -168,7 +167,6 @@ namespace DS4Windows
             Crc32Algorithm.InitializeTable(DS4Device.DefaultPolynomial);
             InitOutputKBMHandler();
 
-            //sp.Stream = DS4WinWPF.Properties.Resources.EE;
             // Cause thread affinity to not be tied to main GUI thread
             tempBusThread = new Thread(() =>
             {
@@ -539,6 +537,13 @@ namespace DS4Windows
             return result;
         }
 
+        /// <summary>
+        /// Obtain extra mappable controls not on a DS4 that should be added
+        /// to the checked inputs list. Keeps Mapping class from having to check
+        /// extra Switch Pro and JoyCon buttons for DS4 controllers
+        /// </summary>
+        /// <param name="dev">Instance of input device</param>
+        /// <returns>List of extra controls to check in Mapping class</returns>
         private List<DS4Controls> GetKnownExtraButtons(DS4Device dev)
         {
             List<DS4Controls> result = new List<DS4Controls>();
@@ -640,7 +645,7 @@ namespace DS4Windows
                     int tempIdx = i;
                     dev.queueEvent(() =>
                     {
-                        if (i < UdpServer.NUMBER_SLOTS && dev.PrimaryDevice)
+                        if (i < UdpServer.NUMBER_SLOTS)
                         {
                             PrepareDevUDPMotion(dev, tempIdx);
                         }
@@ -1363,7 +1368,7 @@ namespace DS4Windows
                             this.On_Report(sender, e, tempIdx);
                         };
 
-                        if (_udpServer != null && i < UdpServer.NUMBER_SLOTS && device.PrimaryDevice)
+                        if (_udpServer != null && i < UdpServer.NUMBER_SLOTS)
                         {
                             PrepareDevUDPMotion(device, tempIdx);
                         }
@@ -1803,7 +1808,7 @@ namespace DS4Windows
                                 this.On_Report(sender, e, tempIdx);
                             };
 
-                            if (_udpServer != null && Index < UdpServer.NUMBER_SLOTS && device.PrimaryDevice)
+                            if (_udpServer != null && Index < UdpServer.NUMBER_SLOTS)
                             {
                                 PrepareDevUDPMotion(device, tempIdx);
                             }
@@ -2040,17 +2045,6 @@ namespace DS4Windows
                 return DS4WinWPF.Properties.Resources.NA;
         }
 
-        public string getDS4Status(int index)
-        {
-            DS4Device d = DS4Controllers[index];
-            if (d != null)
-            {
-                return d.getConnectionType() + "";
-            }
-            else
-                return DS4WinWPF.Properties.Resources.NoneText;
-        }
-
         protected void On_SerialChange(object sender, EventArgs e)
         {
             DS4Device device = (DS4Device)sender;
@@ -2234,11 +2228,12 @@ namespace DS4Windows
                     }
                 }
 
-                DS4State cState;
+                DS4State cState, tempControlState;
                 if (!device.PerformStateMerge)
                 {
                     cState = CurrentState[ind];
                     device.getRawCurrentState(cState);
+                    tempControlState = CurrentState[ind];
                 }
                 else
                 {
@@ -2246,6 +2241,7 @@ namespace DS4Windows
                     device.MergeStateData(cState);
                     // Need to copy state object info for use in UDP server
                     cState.CopyTo(CurrentState[ind]);
+                    tempControlState = CurrentState[ind];
                 }
 
                 DS4State pState = device.getPreviousStateRef();
@@ -2276,6 +2272,38 @@ namespace DS4Windows
 
                 if (!device.PrimaryDevice)
                 {
+                    // Make sure a joined device is still linked
+                    int jointInd = device.JointDeviceSlotNumber;
+                    if (device.OutputMapGyro &&
+                        jointInd != DS4Device.DEFAULT_JOINT_SLOT_NUMBER)
+                    {
+                        // Output changes from Gyro data early. Seems better to ME... REE
+                        GyroOutMode imuOutMode = Global.GetGyroOutMode(device.JointDeviceSlotNumber);
+                        if (imuOutMode != GyroOutMode.None)
+                        {
+                            if (imuOutMode == GyroOutMode.Mouse)
+                            {
+                                outputKBMHandler.Sync();
+                            }
+                            else if (imuOutMode == GyroOutMode.MouseJoystick)
+                            {
+                                // Add new Mapping method and add data to
+                                // parent device state
+                                DS4State tempMapState = MappedState[jointInd];
+                                Mapping.TempMouseJoystick(jointInd, tempMapState);
+                                if (!useDInputOnly[jointInd])
+                                {
+                                    outputDevices[jointInd]?.ConvertandSendReport(tempMapState, jointInd);
+                                }
+                            }
+                        }
+                    }
+                    else if (!device.OutputMapGyro)
+                    {
+                        // Copy for use in UDP
+                        tempControlState.Motion = device.GetRawCurrentStateRef().Motion;
+                    }
+
                     // Skip mapping routine if part of a joined device
                     return;
                 }
@@ -2361,6 +2389,12 @@ namespace DS4Windows
                 if (device.PerformStateMerge)
                 {
                     device.PreserveMergedStateData();
+                }
+
+                if (device.PerformStateMerge && !device.OutputMapGyro)
+                {
+                    // Copy for use in UDP
+                    tempControlState.Motion = device.GetRawCurrentStateRef().Motion;
                 }
             }
         }
