@@ -15,9 +15,9 @@
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <ServerGarbageCollection>true</ServerGarbageCollection>
-    <AssemblyVersion>3.1.1</AssemblyVersion>
-    <FileVersion>3.1.1</FileVersion>
-    <Version>3.1.1</Version>
+    <AssemblyVersion>3.1.2</AssemblyVersion>
+    <FileVersion>3.1.2</FileVersion>
+    <Version>3.1.2</Version>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <Copyright>Copyright © Scarlet.Crush Productions 2012, 2013; InhexSTER, HecticSeptic, electrobrains 2013, 2014; Jays2Kings 2013, 2014, 2015, 2016; Ryochan7 2017-2022</Copyright>
@@ -76,7 +76,7 @@
   <ItemGroup>
     <PackageReference Include="bloomtom.HttpProgress" Version="2.3.2" />
     <PackageReference Include="DotNetProjects.Extended.Wpf.Toolkit" Version="5.0.103" />
-    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.0.53" />
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.0.58" />
     <PackageReference Include="MdXaml" Version="1.15.0" />
     <PackageReference Include="NLog" Version="5.0.1" />
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
@@ -86,6 +86,10 @@
 
     <Reference Include="FakerInputWrapper">
       <HintPath>..\libs\$(Platform)\FakerInputWrapper\FakerInputWrapper.dll</HintPath>
+    </Reference>
+
+    <Reference Include="SharpOSC">
+      <HintPath>..\libs\$(Platform)\SharpOSC\SharpOSC.dll</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -248,10 +252,10 @@
     <EmbeddedResource Update="Translations\Strings.uk-UA.resx">
       <DependentUpon>Strings.resx</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Update="Translations\Strings.zh-CN.resx">
+    <EmbeddedResource Update="Translations\Strings.zh-Hans.resx">
       <DependentUpon>Strings.resx</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Update="Translations\Strings.zh-TW.resx">
+    <EmbeddedResource Update="Translations\Strings.zh-Hant.resx">
       <DependentUpon>Strings.resx</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
@@ -275,6 +279,6 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="rem Copy compiled l18n assemblies to alt folder&#xD;&#xA;GOTO END&#xD;&#xA;if not exist $(TargetDir)Lang mkdir $(TargetDir)Lang&#xD;&#xA;set langs=cs de es fr he it ja nl pt pt-BR ru zh-CN zh-TW uk-UA hu-HU pl ar&#xD;&#xA;&#xD;&#xA;for %25%25l in (%25langs%25) do (&#xD;&#xA;  xcopy $(TargetDir)%25%25l $(TargetDir)Lang\%25%25l\ /s /y&#xD;&#xA;)&#xD;&#xA;&#xD;&#xA;echo $(Version)&gt; $(ProjectDir)\newest.txt&#xD;&#xA;&#xD;&#xA;:END&#xD;&#xA;" />
+    <Exec Command="rem Copy compiled l18n assemblies to alt folder&#xD;&#xA;GOTO END&#xD;&#xA;if not exist $(TargetDir)Lang mkdir $(TargetDir)Lang&#xD;&#xA;set langs=cs de es fr he it ja nl pt pt-BR ru zh-Hans zh-Hant uk-UA hu-HU pl ar&#xD;&#xA;&#xD;&#xA;for %25%25l in (%25langs%25) do (&#xD;&#xA;  xcopy $(TargetDir)%25%25l $(TargetDir)Lang\%25%25l\ /s /y&#xD;&#xA;)&#xD;&#xA;&#xD;&#xA;echo $(Version)&gt; $(ProjectDir)\newest.txt&#xD;&#xA;&#xD;&#xA;:END&#xD;&#xA;" />
   </Target>
 </Project>

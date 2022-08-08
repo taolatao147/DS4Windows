@@ -8,7 +8,6 @@ using System.Diagnostics;
 
 using System.Linq;
 using System.Drawing;
-using DS4Windows.DS4Library;
 
 namespace DS4Windows
 {
@@ -184,8 +183,6 @@ namespace DS4Windows
         internal const int BATTERY_MAX_USB = 11;
         public const string BLANK_SERIAL = "00:00:00:00:00:00";
         public const byte SERIAL_FEATURE_ID = 18;
-        private const string SONYWA_AUDIO_SEARCHNAME = "DUALSHOCK®4 USB Wireless Adaptor";
-        private const string RAIJU_TE_AUDIO_SEARCHNAME = "Razer Raiju Tournament Edition Wired";
         protected HidDevice hDevice;
         protected string Mac;
         protected DS4State cState = new DS4State();
@@ -201,8 +198,6 @@ namespace DS4Windows
         protected readonly DS4SixAxis sixAxis = null;
         protected Thread ds4Input, ds4Output;
         protected int battery;
-        protected DS4Audio audio = null;
-        protected DS4Audio micAudio = null;
         public DateTime lastActive = DateTime.UtcNow;
         public DateTime firstActive = DateTime.UtcNow;
         protected bool charging;
@@ -388,9 +383,9 @@ namespace DS4Windows
         private byte knownGoodBTOutputReportType = DEFAULT_BT_REPORT_TYPE;
 
         //private const byte DEFAULT_OUTPUT_FEATURES = 0xF7;
-        private const byte DEFAULT_OUTPUT_FEATURES = 0x87;
+        private const byte DEFAULT_OUTPUT_FEATURES = 0x07;
         //private const byte COPYCAT_OUTPUT_FEATURES = 0xF3;
-        private const byte COPYCAT_OUTPUT_FEATURES = 0x83;
+        private const byte COPYCAT_OUTPUT_FEATURES = 0x03;
         private byte outputFeaturesByte = DEFAULT_OUTPUT_FEATURES;
 
         protected bool useRumble = true;
@@ -697,16 +692,19 @@ namespace DS4Windows
                 hDevice.OpenFileStream(outputReport.Length);
             }
 
-            if (conType == ConnectionType.BT &&
-                !featureSet.HasFlag(VidPidFeatureSet.NoOutputData) &&
-                !featureSet.HasFlag(VidPidFeatureSet.OnlyOutputData0x05))
-            {
-                CheckOutputReportTypes();
-            }
+            // Temporarily disable this check as it does not seem to help
+            // detect fake DS4 controllers
+            //if (conType == ConnectionType.BT &&
+            //    !featureSet.HasFlag(VidPidFeatureSet.NoOutputData) &&
+            //    !featureSet.HasFlag(VidPidFeatureSet.OnlyOutputData0x05))
+            //{
+            //    CheckOutputReportTypes();
+            //}
 
             sendOutputReport(true, true, false); // initialize the output report (don't force disconnect the gamepad on initialization even if writeData fails because some fake DS4 gamepads don't support writeData over BT)
         }
 
+        // TODO: Possibly remove method
         private void CheckOutputReportTypes()
         {
             // Use Tuple here for convenience
@@ -1486,7 +1484,7 @@ namespace DS4Windows
                 outReportBuffer[2] = 0xA0;
 
                 // Headphone volume L (0x10), Headphone volume R (0x20), Mic volume (0x40), Speaker volume (0x80)
-                // enable rumble (0x01), lightbar (0x02), flash (0x04). Default: 0x87
+                // enable rumble (0x01), lightbar (0x02), flash (0x04). Default: 0x07
                 outReportBuffer[3] = outputFeaturesByte;
                 outReportBuffer[4] = 0x04;
 
@@ -1516,7 +1514,7 @@ namespace DS4Windows
             {
                 outReportBuffer[0] = 0x05;
                 // Headphone volume L (0x10), Headphone volume R (0x20), Mic volume (0x40), Speaker volume (0x80)
-                // enable rumble (0x01), lightbar (0x02), flash (0x04). Default: 0x87
+                // enable rumble (0x01), lightbar (0x02), flash (0x04). Default: 0x07
                 outReportBuffer[1] = outputFeaturesByte;
                 outReportBuffer[2] = 0x04;
                 outReportBuffer[4] = currentHap.rumbleState.RumbleMotorStrengthRightLightFast; // fast motor
