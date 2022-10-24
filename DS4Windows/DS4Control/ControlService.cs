@@ -13,7 +13,7 @@ using SharpOSC;
 using static DS4Windows.Global;
 using DS4WinWPF.DS4Control;
 using DS4Windows.DS4Control;
-using Nefarius.ViGEm.Client.Targets.DualShock4;
+//using Nefarius.ViGEm.Client.Targets.DualShock4;
 using Nefarius.Utilities.DeviceManagement.PnP;
 
 namespace DS4Windows
