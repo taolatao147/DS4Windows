@@ -99,6 +99,11 @@ namespace DS4Windows
         [DllImport("user32.dll", SetLastError = true)]
         protected static extern Boolean UnregisterDeviceNotification(IntPtr Handle);
 
+        [DllImport("winmm.dll")]
+        internal static extern uint timeBeginPeriod(uint period);
+        [DllImport("winmm.dll")]
+        internal static extern uint timeEndPeriod(uint period);
+
         public static Boolean RegisterNotify(IntPtr Form, Guid Class, ref IntPtr Handle, Boolean Window = true)
         {
             IntPtr devBroadcastDeviceInterfaceBuffer = IntPtr.Zero;
@@ -274,6 +279,12 @@ namespace DS4Windows
 
                 Path.Combine(driveLetter, @"Program Files (x86)",
                     "Nefarius Software Solutions e.U", "HidHideClient", "HidHideClient.exe"),
+
+                Path.Combine(driveLetter, @"Program Files",
+                    "Nefarius Software Solutions", "HidHide", "x64", "HidHideClient.exe"),
+
+                Path.Combine(driveLetter, @"Program Files",
+                    "Nefarius Software Solutions", "HidHide", "x86", "HidHideClient.exe"),
             };
 
             foreach(string testPath in testPaths)

@@ -15,9 +15,9 @@
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <ServerGarbageCollection>true</ServerGarbageCollection>
-    <AssemblyVersion>3.1.4</AssemblyVersion>
-    <FileVersion>3.1.4</FileVersion>
-    <Version>3.1.4</Version>
+    <AssemblyVersion>3.1.7</AssemblyVersion>
+    <FileVersion>3.1.7</FileVersion>
+    <Version>3.1.7</Version>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <Copyright>Copyright © Scarlet.Crush Productions 2012, 2013; InhexSTER, HecticSeptic, electrobrains 2013, 2014; Jays2Kings 2013, 2014, 2015, 2016; Ryochan7 2017-2022</Copyright>
@@ -76,9 +76,11 @@
   <ItemGroup>
     <PackageReference Include="bloomtom.HttpProgress" Version="2.3.2" />
     <PackageReference Include="DotNetProjects.Extended.Wpf.Toolkit" Version="5.0.103" />
-    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.0.60" />
-    <PackageReference Include="MdXaml" Version="1.15.0" />
-    <PackageReference Include="NLog" Version="5.0.2" />
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.0.68" />
+    <PackageReference Include="MdXaml" Version="1.16.0" />
+    <PackageReference Include="NLog" Version="5.0.4" />
+    <PackageReference Include="Nefarius.Utilities.DeviceManagement" Version="3.2.184" />
+    <!--<PackageReference Include="Nefarius.ViGEm.Client" Version="1.21.230" />-->
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
     <PackageReference Include="System.Management" Version="6.0.0" />
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
@@ -90,6 +92,10 @@
 
     <Reference Include="SharpOSC">
       <HintPath>..\libs\$(Platform)\SharpOSC\SharpOSC.dll</HintPath>
+    </Reference>
+
+    <Reference Include="Nefarius.ViGEm.Client">
+      <HintPath>..\libs\$(Platform)\Nefarius.ViGEm.Client\Nefarius.ViGEm.Client.dll</HintPath>
     </Reference>
   </ItemGroup>
 

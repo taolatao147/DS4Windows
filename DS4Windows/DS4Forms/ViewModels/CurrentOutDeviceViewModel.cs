@@ -257,6 +257,68 @@ namespace DS4WinWPF.DS4Forms.ViewModels
         public event EventHandler UnplugRequest;
         int idx;
 
+        public bool DisplayXInputSlotNum
+        {
+            get
+            {
+                bool result = false;
+
+                result = outSlotDevice.CurrentType == OutContType.X360 &&
+                    (outSlotDevice.OutputDevice as Xbox360OutDevice).Features.HasFlag(Xbox360OutDevice.X360Features.XInputSlotNum);
+
+                return result;
+            }
+        }
+
+
+        public string XInputSlotNum
+        {
+            get
+            {
+                var xinputSlot = "?";
+                if (outSlotDevice.CurrentType == OutContType.X360)
+                {
+                    var tempX360 = outSlotDevice.OutputDevice as Xbox360OutDevice;
+                    if (tempX360.XinputSlotNum >= 0) xinputSlot = $"{tempX360.XinputSlotNum + 1}";
+                }
+                return xinputSlot;
+            }
+
+        }
+
+        public event EventHandler DisplayXInputSlotNumChanged;
+        public event EventHandler XInputSlotNumChanged;
+
+        public string InputSlotNum
+        {
+            get
+            {
+                string result = "";
+                if (outSlotDevice.InputIndex != OutSlotDevice.INPUT_INDEX_DEFAULT)
+                {
+                    result = $"{outSlotDevice.InputIndex+1}";
+                }
+
+                return result;
+            }
+        }
+
+        public event EventHandler InputSlotNumChanged;
+
+        public string InputSlotDisplayString
+        {
+            get
+            {
+                string result = "";
+                if (outSlotDevice.InputIndex != OutSlotDevice.INPUT_INDEX_DEFAULT)
+                {
+                    result = $"{outSlotDevice.InputIndex + 1} ({outSlotDevice.InputDisplayString})";
+                }
+                return result;
+            }
+        }
+        public event EventHandler InputSlotDisplayStringChanged;
+
         public SlotDeviceEntry(OutSlotDevice outSlotDevice, int idx)
         {
             this.outSlotDevice = outSlotDevice;
@@ -387,6 +449,9 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             CurrentTypeChanged?.Invoke(this, EventArgs.Empty);
             DesiredTypeChanged?.Invoke(this, EventArgs.Empty);
             BoundInputChanged?.Invoke(this, EventArgs.Empty);
+            XInputSlotNumChanged?.Invoke(this, EventArgs.Empty);
+            DisplayXInputSlotNumChanged?.Invoke(this, EventArgs.Empty);
+            InputSlotDisplayStringChanged?.Invoke(this, EventArgs.Empty);
             Dirty = false;
         }
 

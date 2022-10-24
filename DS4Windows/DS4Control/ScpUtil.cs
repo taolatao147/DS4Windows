@@ -16,6 +16,8 @@ using Sensorit.Base;
 using DS4Windows.DS4Control;
 using System.Windows.Input;
 using System.Runtime.InteropServices;
+using static DS4Windows.Mouse;
+using DS4Windows.StickModifiers;
 
 namespace DS4Windows
 {
@@ -43,6 +45,7 @@ namespace DS4Windows
         None,
         Mouse,
         Controls,
+        MouseJoystick,
         AbsoluteMouse,
         Passthru,
     }
@@ -411,8 +414,20 @@ namespace DS4Windows
         public const double DEFAULT_WHEEL_CUTOFF = 0.1;
         public const double DEFAULT_WHEEL_BETA = 0.1;
 
-        public OneEuroFilter axis1Filter = new OneEuroFilter(minCutoff: DEFAULT_WHEEL_CUTOFF, beta: DEFAULT_WHEEL_BETA);
-        public OneEuroFilter axis2Filter = new OneEuroFilter(minCutoff: DEFAULT_WHEEL_CUTOFF, beta: DEFAULT_WHEEL_BETA);
+        public OneEuroFilter axis1Filter;
+        public OneEuroFilter axis2Filter;
+
+        public OneEuroFilterPair()
+        {
+            axis1Filter = new OneEuroFilter(minCutoff: DEFAULT_WHEEL_CUTOFF, beta: DEFAULT_WHEEL_BETA);
+            axis2Filter = new OneEuroFilter(minCutoff: DEFAULT_WHEEL_CUTOFF, beta: DEFAULT_WHEEL_BETA);
+        }
+
+        public OneEuroFilterPair(double minCutoff, double beta)
+        {
+            axis1Filter = new OneEuroFilter(minCutoff: minCutoff, beta: beta);
+            axis2Filter = new OneEuroFilter(minCutoff: minCutoff, beta: beta);
+        }
     }
 
     public class OneEuroFilter3D
@@ -1927,6 +1942,7 @@ namespace DS4Windows
 
         public static bool[] LowerRCOn => m_Config.lowerRCOn;
         public static bool[] TouchClickPassthru => m_Config.touchClickPassthru;
+        public static TouchButtonActivationMode[] TouchpadButtonMode => m_Config.touchpadButtonMode;
         public static bool[] TouchpadJitterCompensation => m_Config.touchpadJitterCompensation;
         public static bool getTouchpadJitterCompensation(int index)
         {
@@ -2243,6 +2259,24 @@ namespace DS4Windows
             return m_Config.trackballFriction[index];
         }
 
+        //public static bool[] TouchStickTrackballMode => m_Config.touchStickTrackballMode;
+        //public static bool GetTouchStickTrackballMode(int index)
+        //{
+        //    return m_Config.touchStickTrackballMode[index];
+        //}
+
+        //public static double[] TouchStickTrackballFriction => m_Config.touchStickTrackballFriction;
+        //public static double GetTouchStickTrackballFriction(int index)
+        //{
+        //    return m_Config.touchStickTrackballFriction[index];
+        //}
+
+        public static TouchMouseStickInfo[] TouchMouseStickInf => m_Config.touchMStickInfo;
+        public static TouchMouseStickInfo GetTouchMouseStickInfo(int device)
+        {
+            return m_Config.touchMStickInfo[device];
+        }
+
         public static TouchpadAbsMouseSettings[] TouchAbsMouse => m_Config.touchpadAbsMouse;
         public static TouchpadRelMouseSettings[] TouchRelMouse => m_Config.touchpadRelMouse;
 
@@ -2505,7 +2539,7 @@ namespace DS4Windows
         public static void LoadDefaultDS4MixedControlsProfile(int device, bool launchprogram, ControlService control,
             bool xinputChange = true, bool postLoad = true)
         {
-            m_Config.LoadDefaultMixedControlsProfile(device, launchprogram, control, "", xinputChange, postLoad);
+            m_Config.LoadDefaultDS4MixedControlsProfile(device, launchprogram, control, "", xinputChange, postLoad);
             m_Config.EstablishDefaultSpecialActions(device);
             m_Config.CacheExtraProfileInfo(device);
 
@@ -3125,12 +3159,29 @@ namespace DS4Windows
 
         public bool[] trackballMode = new bool[Global.TEST_PROFILE_ITEM_COUNT] { false, false, false, false, false, false, false, false, false };
         public double[] trackballFriction = new double[Global.TEST_PROFILE_ITEM_COUNT] { 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0 };
+        //public bool[] touchStickTrackballMode = new bool[Global.TEST_PROFILE_ITEM_COUNT] { false, false, false, false, false, false, false, false, false };
+        //public double[] touchStickTrackballFriction = new double[Global.TEST_PROFILE_ITEM_COUNT] { 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0 };
 
+        public TouchMouseStickInfo[] touchMStickInfo = new TouchMouseStickInfo[Global.TEST_PROFILE_ITEM_COUNT]
+        {
+            new TouchMouseStickInfo(),
+            new TouchMouseStickInfo(),
+            new TouchMouseStickInfo(), new TouchMouseStickInfo(),
+            new TouchMouseStickInfo(), new TouchMouseStickInfo(),
+            new TouchMouseStickInfo(), new TouchMouseStickInfo(),
+            new TouchMouseStickInfo(),
+        };
 
         public TouchpadAbsMouseSettings[] touchpadAbsMouse = new TouchpadAbsMouseSettings[Global.TEST_PROFILE_ITEM_COUNT] { new TouchpadAbsMouseSettings(), new TouchpadAbsMouseSettings(), new TouchpadAbsMouseSettings(),
             new TouchpadAbsMouseSettings(),new TouchpadAbsMouseSettings(),new TouchpadAbsMouseSettings(),new TouchpadAbsMouseSettings(),new TouchpadAbsMouseSettings(),new TouchpadAbsMouseSettings() };
         public TouchpadRelMouseSettings[] touchpadRelMouse = new TouchpadRelMouseSettings[Global.TEST_PROFILE_ITEM_COUNT] { new TouchpadRelMouseSettings(), new TouchpadRelMouseSettings(), new TouchpadRelMouseSettings(), new TouchpadRelMouseSettings(),
             new TouchpadRelMouseSettings(), new TouchpadRelMouseSettings(), new TouchpadRelMouseSettings(), new TouchpadRelMouseSettings(), new TouchpadRelMouseSettings() };
+
+        public TouchButtonActivationMode[] touchpadButtonMode = new TouchButtonActivationMode[Global.TEST_PROFILE_ITEM_COUNT]
+        {
+            new TouchButtonActivationMode(), new TouchButtonActivationMode(), new TouchButtonActivationMode(), new TouchButtonActivationMode(),
+            new TouchButtonActivationMode(), new TouchButtonActivationMode(), new TouchButtonActivationMode(), new TouchButtonActivationMode(), new TouchButtonActivationMode(),
+        };
 
         // Used to hold the controller type desired in a profile
         public OutContType[] outputDevType = new OutContType[Global.TEST_PROFILE_ITEM_COUNT] { OutContType.X360,
@@ -3604,6 +3655,24 @@ namespace DS4Windows
                 XmlNode xmlLSOuterBindInvert = m_Xdoc.CreateNode(XmlNodeType.Element, "LSOuterBindInvert", null); xmlLSOuterBindInvert.InnerText = lsModInfo[device].outerBindInvert.ToString(); rootElement.AppendChild(xmlLSOuterBindInvert);
                 XmlNode xmlRSOuterBindInvert = m_Xdoc.CreateNode(XmlNodeType.Element, "RSOuterBindInvert", null); xmlRSOuterBindInvert.InnerText = rsModInfo[device].outerBindInvert.ToString(); rootElement.AppendChild(xmlRSOuterBindInvert);
 
+                XmlElement xmlLSDeltaAccelGroupEl = m_Xdoc.CreateElement("LSDeltaAccelSettings");
+                XmlElement xmlLSDeltaEnabled = m_Xdoc.CreateElement("Enabled"); xmlLSDeltaEnabled.InnerText = lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.enabled.ToString(); xmlLSDeltaAccelGroupEl.AppendChild(xmlLSDeltaEnabled);
+                XmlElement xmlLSDeltaMultiplier = m_Xdoc.CreateElement("Multiplier"); xmlLSDeltaMultiplier.InnerText = lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.multiplier.ToString(); xmlLSDeltaAccelGroupEl.AppendChild(xmlLSDeltaMultiplier);
+                XmlElement xmlLSDeltaMaxTravel = m_Xdoc.CreateElement("MaxTravel"); xmlLSDeltaMaxTravel.InnerText = lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.maxTravel.ToString(); xmlLSDeltaAccelGroupEl.AppendChild(xmlLSDeltaMaxTravel);
+                XmlElement xmlLSDeltaMinTravel = m_Xdoc.CreateElement("MinTravel"); xmlLSDeltaMinTravel.InnerText = lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minTravel.ToString(); xmlLSDeltaAccelGroupEl.AppendChild(xmlLSDeltaMinTravel);
+                XmlElement xmlLSDeltaEasingDuration = m_Xdoc.CreateElement("EasingDuration"); xmlLSDeltaEasingDuration.InnerText = lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.easingDuration.ToString(); xmlLSDeltaAccelGroupEl.AppendChild(xmlLSDeltaEasingDuration);
+                XmlElement xmlLSDeltaMinFactor = m_Xdoc.CreateElement("MinFactor"); xmlLSDeltaMinFactor.InnerText = lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minfactor.ToString(); xmlLSDeltaAccelGroupEl.AppendChild(xmlLSDeltaMinFactor);
+                rootElement.AppendChild(xmlLSDeltaAccelGroupEl);
+
+                XmlElement xmlRSDeltaAccelGroupEl = m_Xdoc.CreateElement("RSDeltaAccelSettings");
+                XmlElement xmlRSDeltaEnabled = m_Xdoc.CreateElement("Enabled"); xmlRSDeltaEnabled.InnerText = rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.enabled.ToString(); xmlRSDeltaAccelGroupEl.AppendChild(xmlRSDeltaEnabled);
+                XmlElement xmlRSDeltaMultiplier = m_Xdoc.CreateElement("Multiplier"); xmlRSDeltaMultiplier.InnerText = rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.multiplier.ToString(); xmlRSDeltaAccelGroupEl.AppendChild(xmlRSDeltaMultiplier);
+                XmlElement xmlRSDeltaMaxTravel = m_Xdoc.CreateElement("MaxTravel"); xmlRSDeltaMaxTravel.InnerText = rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.maxTravel.ToString(); xmlRSDeltaAccelGroupEl.AppendChild(xmlRSDeltaMaxTravel);
+                XmlElement xmlRSDeltaMinTravel = m_Xdoc.CreateElement("MinTravel"); xmlRSDeltaMinTravel.InnerText = rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minTravel.ToString(); xmlRSDeltaAccelGroupEl.AppendChild(xmlRSDeltaMinTravel);
+                XmlElement xmlRSDeltaEasingDuration = m_Xdoc.CreateElement("EasingDuration"); xmlRSDeltaEasingDuration.InnerText = rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.easingDuration.ToString(); xmlRSDeltaAccelGroupEl.AppendChild(xmlRSDeltaEasingDuration);
+                XmlElement xmlRSDeltaMinFactor = m_Xdoc.CreateElement("MinFactor"); xmlRSDeltaMinFactor.InnerText = rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minfactor.ToString(); xmlRSDeltaAccelGroupEl.AppendChild(xmlRSDeltaMinFactor);
+                rootElement.AppendChild(xmlRSDeltaAccelGroupEl);
+
                 XmlNode xmlSXD = m_Xdoc.CreateNode(XmlNodeType.Element, "SXDeadZone", null); xmlSXD.InnerText = SXDeadzone[device].ToString(); rootElement.AppendChild(xmlSXD);
                 XmlNode xmlSZD = m_Xdoc.CreateNode(XmlNodeType.Element, "SZDeadZone", null); xmlSZD.InnerText = SZDeadzone[device].ToString(); rootElement.AppendChild(xmlSZD);
 
@@ -3745,6 +3814,7 @@ namespace DS4Windows
                 XmlNode xmlLsFlickStickRWC = m_Xdoc.CreateNode(XmlNodeType.Element, "RealWorldCalibration", null); xmlLsFlickStickRWC.InnerText = lsOutputSettings[device].outputSettings.flickSettings.realWorldCalibration.ToString(); xmlLsFlickStickGroupElement.AppendChild(xmlLsFlickStickRWC);
                 XmlNode xmlLsFlickStickThreshold = m_Xdoc.CreateNode(XmlNodeType.Element, "FlickThreshold", null); xmlLsFlickStickThreshold.InnerText = lsOutputSettings[device].outputSettings.flickSettings.flickThreshold.ToString(); xmlLsFlickStickGroupElement.AppendChild(xmlLsFlickStickThreshold);
                 XmlNode xmlLsFlickStickTime = m_Xdoc.CreateNode(XmlNodeType.Element, "FlickTime", null); xmlLsFlickStickTime.InnerText = lsOutputSettings[device].outputSettings.flickSettings.flickTime.ToString(); xmlLsFlickStickGroupElement.AppendChild(xmlLsFlickStickTime);
+                XmlNode xmlLsMinAngleThreshold = m_Xdoc.CreateNode(XmlNodeType.Element, "MinAngleThreshold", null); xmlLsMinAngleThreshold.InnerText = lsOutputSettings[device].outputSettings.flickSettings.minAngleThreshold.ToString(); xmlLsFlickStickGroupElement.AppendChild(xmlLsMinAngleThreshold);
                 rootElement.AppendChild(xmlLsOutputSettingsElement);
 
                 XmlElement xmlRsOutputSettingsElement = m_Xdoc.CreateElement("RSOutputSettings");
@@ -3752,6 +3822,7 @@ namespace DS4Windows
                 XmlNode xmlRsFlickStickRWC = m_Xdoc.CreateNode(XmlNodeType.Element, "RealWorldCalibration", null); xmlRsFlickStickRWC.InnerText = rsOutputSettings[device].outputSettings.flickSettings.realWorldCalibration.ToString(); xmlRsFlickStickGroupElement.AppendChild(xmlRsFlickStickRWC);
                 XmlNode xmlRsFlickStickThreshold = m_Xdoc.CreateNode(XmlNodeType.Element, "FlickThreshold", null); xmlRsFlickStickThreshold.InnerText = rsOutputSettings[device].outputSettings.flickSettings.flickThreshold.ToString(); xmlRsFlickStickGroupElement.AppendChild(xmlRsFlickStickThreshold);
                 XmlNode xmlRsFlickStickTime = m_Xdoc.CreateNode(XmlNodeType.Element, "FlickTime", null); xmlRsFlickStickTime.InnerText = rsOutputSettings[device].outputSettings.flickSettings.flickTime.ToString(); xmlRsFlickStickGroupElement.AppendChild(xmlRsFlickStickTime);
+                XmlNode xmlRsMinAngleThreshold = m_Xdoc.CreateNode(XmlNodeType.Element, "MinAngleThreshold", null); xmlRsMinAngleThreshold.InnerText = rsOutputSettings[device].outputSettings.flickSettings.minAngleThreshold.ToString(); xmlRsFlickStickGroupElement.AppendChild(xmlRsMinAngleThreshold);
                 rootElement.AppendChild(xmlRsOutputSettingsElement);
 
                 XmlNode xmlL2OutputCurveMode = m_Xdoc.CreateNode(XmlNodeType.Element, "L2OutputCurveMode", null); xmlL2OutputCurveMode.InnerText = axisOutputCurveString(getL2OutCurveMode(device)); rootElement.AppendChild(xmlL2OutputCurveMode);
@@ -3759,6 +3830,9 @@ namespace DS4Windows
 
                 XmlNode xmlL2TwoStageMode = m_Xdoc.CreateNode(XmlNodeType.Element, "L2TwoStageMode", null); xmlL2TwoStageMode.InnerText = l2OutputSettings[device].twoStageMode.ToString(); rootElement.AppendChild(xmlL2TwoStageMode);
                 XmlNode xmlR2TwoStageMode = m_Xdoc.CreateNode(XmlNodeType.Element, "R2TwoStageMode", null); xmlR2TwoStageMode.InnerText = r2OutputSettings[device].twoStageMode.ToString(); rootElement.AppendChild(xmlR2TwoStageMode);
+
+                XmlNode xmlL2HipFireTime = m_Xdoc.CreateNode(XmlNodeType.Element, "L2HipFireTime", null); xmlL2HipFireTime.InnerText = l2OutputSettings[device].hipFireMS.ToString(); rootElement.AppendChild(xmlL2HipFireTime);
+                XmlNode xmlR2HipFireTime = m_Xdoc.CreateNode(XmlNodeType.Element, "R2HipFireTime", null); xmlR2HipFireTime.InnerText = r2OutputSettings[device].hipFireMS.ToString(); rootElement.AppendChild(xmlR2HipFireTime);
 
                 XmlNode xmlL2TriggerEffect = m_Xdoc.CreateNode(XmlNodeType.Element, "L2TriggerEffect", null); xmlL2TriggerEffect.InnerText = l2OutputSettings[device].triggerEffect.ToString(); rootElement.AppendChild(xmlL2TriggerEffect);
                 XmlNode xmlR2TriggerEffect = m_Xdoc.CreateNode(XmlNodeType.Element, "R2TriggerEffect", null); xmlR2TriggerEffect.InnerText = r2OutputSettings[device].triggerEffect.ToString(); rootElement.AppendChild(xmlR2TriggerEffect);
@@ -3784,6 +3858,32 @@ namespace DS4Windows
                 XmlElement xmlTouchAbsMouseSnapCenter = m_Xdoc.CreateElement("SnapToCenter"); xmlTouchAbsMouseSnapCenter.InnerText = touchpadAbsMouse[device].snapToCenter.ToString(); xmlTouchAbsMouseGroupEl.AppendChild(xmlTouchAbsMouseSnapCenter);
                 rootElement.AppendChild(xmlTouchAbsMouseGroupEl);
 
+                // Isolate as a group. More readable for this???
+                //if (false)
+                {
+                    XmlElement xmlTouchMouseStickGroupEl = m_Xdoc.CreateElement("TouchpadMouseStick");
+                    XmlElement xmlTouchMouseStickDeadZone = m_Xdoc.CreateElement("DeadZone"); xmlTouchMouseStickDeadZone.InnerText = touchMStickInfo[device].deadZone.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickDeadZone);
+                    XmlElement xmlTouchMouseStickMaxZone = m_Xdoc.CreateElement("MaxZone"); xmlTouchMouseStickMaxZone.InnerText = touchMStickInfo[device].maxZone.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickMaxZone);
+                    XmlElement xmlTouchMouseStickOutStick = m_Xdoc.CreateElement("OutputStick"); xmlTouchMouseStickOutStick.InnerText = touchMStickInfo[device].outputStick.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickOutStick);
+                    XmlElement xmlTouchMouseStickOutStickAxes = m_Xdoc.CreateElement("OutputStick"); xmlTouchMouseStickOutStickAxes.InnerText = touchMStickInfo[device].outputStickDir.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickOutStickAxes);
+                    XmlElement xmlTouchMouseStickAntiDeadX = m_Xdoc.CreateElement("AntiDeadX"); xmlTouchMouseStickAntiDeadX.InnerText = touchMStickInfo[device].antiDeadX.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickAntiDeadX);
+                    XmlElement xmlTouchMouseStickAntiDeadY = m_Xdoc.CreateElement("AntiDeadY"); xmlTouchMouseStickAntiDeadY.InnerText = touchMStickInfo[device].antiDeadY.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickAntiDeadY);
+                    XmlElement xmlTouchMouseStickInvert = m_Xdoc.CreateElement("Invert"); xmlTouchMouseStickInvert.InnerText = touchMStickInfo[device].inverted.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickInvert);
+                    XmlElement xmlTouchMouseStickMaxOutput = m_Xdoc.CreateElement("MaxOutput"); xmlTouchMouseStickMaxOutput.InnerText = touchMStickInfo[device].maxOutput.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickMaxOutput);
+                    XmlElement xmlTouchMouseStickMaxOutputEnabled = m_Xdoc.CreateElement("MaxOutputEnabled"); xmlTouchMouseStickMaxOutputEnabled.InnerText = touchMStickInfo[device].maxOutputEnabled.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickMaxOutputEnabled);
+                    XmlElement xmlTouchMouseStickVerticalScale = m_Xdoc.CreateElement("VerticalScale"); xmlTouchMouseStickVerticalScale.InnerText = touchMStickInfo[device].vertScale.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickVerticalScale);
+                    XmlElement xmlTouchMouseStickOutputCurve = m_Xdoc.CreateElement("OutputCurve"); xmlTouchMouseStickOutputCurve.InnerText = touchMStickInfo[device].outputCurve.ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickOutputCurve);
+                    XmlElement xmlTouchMouseStickRotation = m_Xdoc.CreateElement("Rotation"); xmlTouchMouseStickRotation.InnerText = Convert.ToInt32(touchMStickInfo[device].rotationRad * 180.0 / Math.PI).ToString(); xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickRotation);
+
+                    XmlElement xmlTouchMouseStickSmoothSettingsEl = m_Xdoc.CreateElement("SmoothingSettings");
+                    XmlElement xmlTouchMouseStickSmoothMethod = m_Xdoc.CreateElement("SmoothingMethod"); xmlTouchMouseStickSmoothMethod.InnerText = touchMStickInfo[device].smoothingMethod.ToString(); xmlTouchMouseStickSmoothSettingsEl.AppendChild(xmlTouchMouseStickSmoothMethod);
+                    XmlElement xmlTouchMouseStickSmoothMinCutoff = m_Xdoc.CreateElement("SmoothingMinCutoff"); xmlTouchMouseStickSmoothMinCutoff.InnerText = touchMStickInfo[device].minCutoff.ToString(); xmlTouchMouseStickSmoothSettingsEl.AppendChild(xmlTouchMouseStickSmoothMinCutoff);
+                    XmlElement xmlTouchMouseStickSmoothBeta = m_Xdoc.CreateElement("SmoothingBeta"); xmlTouchMouseStickSmoothBeta.InnerText = touchMStickInfo[device].beta.ToString(); xmlTouchMouseStickSmoothSettingsEl.AppendChild(xmlTouchMouseStickSmoothBeta);
+                    xmlTouchMouseStickGroupEl.AppendChild(xmlTouchMouseStickSmoothSettingsEl);
+                    rootElement.AppendChild(xmlTouchMouseStickGroupEl);
+                }
+
+                XmlNode xmlTouchButtonMode = m_Xdoc.CreateNode(XmlNodeType.Element, "TouchpadButtonMode", null); xmlTouchButtonMode.InnerText = touchpadButtonMode[device].ToString(); rootElement.AppendChild(xmlTouchButtonMode);
                 XmlNode xmlOutContDevice = m_Xdoc.CreateNode(XmlNodeType.Element, "OutputContDevice", null); xmlOutContDevice.InnerText = OutContDeviceString(outputDevType[device]); rootElement.AppendChild(xmlOutContDevice);
 
                 XmlNode NodeControl = m_Xdoc.CreateNode(XmlNodeType.Element, "Control", null);
@@ -4281,6 +4381,9 @@ namespace DS4Windows
                 // Make sure to reset currently set profile values before parsing
                 ResetProfile(device);
                 ResetMouseProperties(device, control);
+                // Reset some Mapping properties before attempting to load different
+                // profile
+                control.PreLoadReset(device);
 
                 try { Item = m_Xdoc.SelectSingleNode("/" + rootname + "/touchToggle"); Boolean.TryParse(Item.InnerText, out enableTouchToggle[device]); }
                 catch { missingSetting = true; }
@@ -4762,6 +4865,77 @@ namespace DS4Windows
                     catch { }
                 }
 
+                XmlNode lsDeltaAccelElement =
+                    m_Xdoc.SelectSingleNode($"/{rootname}/LSDeltaAccelSettings");
+                if (lsDeltaAccelElement != null)
+                {
+                    try
+                    {
+                        Item = lsDeltaAccelElement.SelectSingleNode("Enabled");
+                        if (bool.TryParse(Item.InnerText ?? "", out bool temp))
+                        {
+                            lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.enabled
+                                = temp;
+                        }
+                    }
+                    catch {}
+
+                    try
+                    {
+                        Item = lsDeltaAccelElement.SelectSingleNode("Multiplier");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.multiplier =
+                                Math.Clamp(temp, 0.0, 10.0);
+                        }
+                    }
+                    catch {}
+
+                    try
+                    {
+                        Item = lsDeltaAccelElement.SelectSingleNode("MaxTravel");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.maxTravel =
+                                Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch {}
+
+                    try
+                    {
+                        Item = lsDeltaAccelElement.SelectSingleNode("MinTravel");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minTravel =
+                                Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch {}
+
+                    try
+                    {
+                        Item = lsDeltaAccelElement.SelectSingleNode("EasingDuration");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.easingDuration =
+                                Math.Clamp(temp, 0.0, 600.0);
+                        }
+                    }
+                    catch {}
+
+                    try
+                    {
+                        Item = lsDeltaAccelElement.SelectSingleNode("MinFactor");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            lsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minfactor =
+                                Math.Clamp(temp, 1.0, 10.0);
+                        }
+                    }
+                    catch {}
+                }
+
                 try
                 {
                     Item = m_Xdoc.SelectSingleNode("/" + rootname + "/RSDeadZoneType");
@@ -4842,6 +5016,77 @@ namespace DS4Windows
                         Item = rsAxialDeadElement.SelectSingleNode("MaxOutputY");
                         double.TryParse(Item.InnerText, out double temp);
                         rsModInfo[device].yAxisDeadInfo.maxOutput = Math.Min(Math.Max(temp, 0.0), 100.0);
+                    }
+                    catch { }
+                }
+
+                XmlNode rsDeltaAccelElement =
+                    m_Xdoc.SelectSingleNode($"/{rootname}/RSDeltaAccelSettings");
+                if (lsDeltaAccelElement != null)
+                {
+                    try
+                    {
+                        Item = rsDeltaAccelElement.SelectSingleNode("Enabled");
+                        if (bool.TryParse(Item.InnerText ?? "", out bool temp))
+                        {
+                            rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.enabled
+                                = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = rsDeltaAccelElement.SelectSingleNode("Multiplier");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.multiplier =
+                                Math.Clamp(temp, 0.0, 10.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = rsDeltaAccelElement.SelectSingleNode("MaxTravel");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.maxTravel =
+                                Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = rsDeltaAccelElement.SelectSingleNode("MinTravel");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minTravel =
+                                Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = rsDeltaAccelElement.SelectSingleNode("EasingDuration");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.easingDuration =
+                                Math.Clamp(temp, 0.0, 600.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = rsDeltaAccelElement.SelectSingleNode("MinFactor");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            rsOutputSettings[device].outputSettings.controlSettings.deltaAccelSettings.minfactor =
+                                Math.Clamp(temp, 1.0, 10.0);
+                        }
                     }
                     catch { }
                 }
@@ -5589,6 +5834,15 @@ namespace DS4Windows
                             lsOutputSettings[device].outputSettings.flickSettings.flickTime = temp;
                         }
                         catch { missingSetting = true; }
+
+                        try
+                        {
+                            Item = xmlFlickStickLSElement.SelectSingleNode("MinAngleThreshold");
+                            double.TryParse(Item.InnerText, out double temp);
+                            lsOutputSettings[device].outputSettings.flickSettings.minAngleThreshold = temp;
+                        }
+                        catch { missingSetting = true; }
+
                     }
                     else
                     {
@@ -5635,6 +5889,14 @@ namespace DS4Windows
                             rsOutputSettings[device].outputSettings.flickSettings.flickTime = temp;
                         }
                         catch { missingSetting = true; }
+
+                        try
+                        {
+                            Item = xmlFlickStickRSElement.SelectSingleNode("MinAngleThreshold");
+                            double.TryParse(Item.InnerText, out double temp);
+                            rsOutputSettings[device].outputSettings.flickSettings.minAngleThreshold = temp;
+                        }
+                        catch { missingSetting = true; }
                     }
                     else
                     {
@@ -5661,12 +5923,13 @@ namespace DS4Windows
                 }
                 catch { }
 
+
                 try
                 {
-                    Item = m_Xdoc.SelectSingleNode("/" + rootname + "/L2HipFireDelay");
+                    Item = m_Xdoc.SelectSingleNode("/" + rootname + "/L2HipFireTime");
                     if (int.TryParse(Item?.InnerText, out int temp))
                     {
-                        l2OutputSettings[device].hipFireMS = Math.Max(Math.Min(0, temp), 5000);
+                        l2OutputSettings[device].hipFireMS = Math.Clamp(temp, 0, 5000);
                     }
                 }
                 catch { }
@@ -5698,10 +5961,10 @@ namespace DS4Windows
 
                 try
                 {
-                    Item = m_Xdoc.SelectSingleNode("/" + rootname + "/R2HipFireDelay");
+                    Item = m_Xdoc.SelectSingleNode("/" + rootname + "/R2HipFireTime");
                     if (int.TryParse(Item?.InnerText, out int temp))
                     {
-                        r2OutputSettings[device].hipFireMS = Math.Max(Math.Min(0, temp), 5000);
+                        r2OutputSettings[device].hipFireMS = Math.Clamp(temp, 0, 5000);
                     }
                 }
                 catch { }
@@ -5786,6 +6049,208 @@ namespace DS4Windows
                 {
                     missingSetting = true;
                 }
+
+
+                bool touchMStickGroup = false;
+                XmlNode xmlTouchMStickSmoothingElement =
+                    m_Xdoc.SelectSingleNode("/" + rootname + "/TouchpadMouseStick");
+                touchMStickGroup = xmlTouchMStickSmoothingElement != null;
+
+                if (touchMStickGroup && xmlTouchMStickSmoothingElement.HasChildNodes)
+                {
+                    //try
+                    //{
+                    //    Item = xmlGyroMStickSmoothingElement.SelectSingleNode("UseSmoothing");
+                    //    if (bool.TryParse(Item?.InnerText ?? "", out bool tempSmoothing))
+                    //    {
+                    //        gyroMStickInfo[device].useSmoothing = tempSmoothing;
+                    //    }
+                    //}
+                    //catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("DeadZone");
+                        if (int.TryParse(Item?.InnerText ?? "", out int temp))
+                        {
+                            touchMStickInfo[device].deadZone = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("MaxZone");
+                        if (int.TryParse(Item?.InnerText ?? "", out int temp))
+                        {
+                            touchMStickInfo[device].maxZone = Math.Max(temp, 1);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("OutputStick");
+                        if (Enum.TryParse(Item?.InnerText ?? "",
+                            out TouchMouseStickInfo.OutputStick temp))
+                        {
+                            touchMStickInfo[device].outputStick = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("OutputStickAxes");
+                        if (Enum.TryParse(Item?.InnerText ?? "",
+                            out TouchMouseStickInfo.OutputStickAxes temp))
+                        {
+                            touchMStickInfo[device].outputStickDir = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("AntiDeadX");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            touchMStickInfo[device].antiDeadX = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("AntiDeadY");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            touchMStickInfo[device].antiDeadY = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("Invert");
+                        if (uint.TryParse(Item?.InnerText ?? "",
+                            out uint temp))
+                        {
+                            touchMStickInfo[device].inverted = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("MaxOutput");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            touchMStickInfo[device].maxOutput = Math.Clamp(temp, 0.0, 100.0);
+                        }
+                    }
+                    catch {  }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("MaxOutputEnabled");
+                        if (bool.TryParse(Item?.InnerText ?? "", out bool temp))
+                        {
+                            touchMStickInfo[device].maxOutputEnabled = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("VerticalScale");
+                        if (int.TryParse(Item?.InnerText ?? "", out int temp))
+                        {
+                            touchMStickInfo[device].vertScale = temp;
+                        }
+                    }
+                    catch {}
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("OutputCurve");
+                        if (Enum.TryParse(Item?.InnerText ?? "", out StickOutCurve.Curve temp))
+                        {
+                            touchMStickInfo[device].outputCurve = temp;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlTouchMStickSmoothingElement.SelectSingleNode("Rotation");
+                        if (int.TryParse(Item?.InnerText ?? "", out int temp))
+                        {
+                            temp = Math.Clamp(temp, -180, 180);
+                            touchMStickInfo[device].rotationRad = temp * Math.PI / 180.0;
+                        }
+                    }
+                    catch { }
+
+
+                    bool stickSmoothingGroup = false;
+                    XmlNode xmlStickSmoothingElement =
+                        xmlTouchMStickSmoothingElement.SelectSingleNode("SmoothingSettings");
+                    stickSmoothingGroup = xmlStickSmoothingElement != null;
+
+                    if (stickSmoothingGroup && xmlStickSmoothingElement.HasChildNodes)
+                    {
+                        //try
+                        //{
+                        //    Item = xmlGyroMStickSmoothingElement.SelectSingleNode("UseSmoothing");
+                        //    bool.TryParse(Item.InnerText, out bool tempSmoothing);
+                        //    gyroMStickInfo[device].useSmoothing = tempSmoothing;
+                        //}
+                        //catch { gyroMStickInfo[device].useSmoothing = false; missingSetting = true; }
+
+                        try
+                        {
+                            Item = xmlTouchMStickSmoothingElement.SelectSingleNode("SmoothingMethod");
+                            if (Enum.TryParse(Item?.InnerText ?? "",
+                                out TouchMouseStickInfo.SmoothingMethod temp))
+                            {
+                                touchMStickInfo[device].smoothingMethod = temp;
+                            }
+                        }
+                        catch { }
+
+                        try
+                        {
+                            Item = xmlTouchMStickSmoothingElement.SelectSingleNode("SmoothingMinCutoff");
+                            if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                            {
+                                touchMStickInfo[device].minCutoff = Math.Clamp(temp, 0.0, 100.0);
+                            }
+                        }
+                        catch { }
+
+                        try
+                        {
+                            Item = xmlTouchMStickSmoothingElement.SelectSingleNode("SmoothingBeta");
+                            if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                            {
+                                touchMStickInfo[device].beta = Math.Clamp(temp, 0.0, 1.0);
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+
+                try
+                {
+                    Item = m_Xdoc.SelectSingleNode($"/{rootname}/TouchpadButtonMode");
+                    if (Enum.TryParse(Item?.InnerText ?? "", out TouchButtonActivationMode tempMode))
+                    {
+                        touchpadButtonMode[device] = tempMode;
+                    }
+                }
+                catch { touchpadButtonMode[device] = TouchButtonActivationMode.Click; missingSetting = true; }
 
                 try { Item = m_Xdoc.SelectSingleNode("/" + rootname + "/OutputContDevice"); outputDevType[device] = OutContDeviceId(Item.InnerText); }
                 catch { outputDevType[device] = OutContType.X360; missingSetting = true; }
@@ -7411,6 +7876,8 @@ namespace DS4Windows
             trackballFriction[device] = 10.0;
             touchpadAbsMouse[device].Reset();
             touchpadRelMouse[device].Reset();
+            touchMStickInfo[device].Reset();
+            touchpadButtonMode[device] = TouchButtonActivationMode.Click;
             outputDevType[device] = OutContType.X360;
             ds4Mapping = false;
         }
