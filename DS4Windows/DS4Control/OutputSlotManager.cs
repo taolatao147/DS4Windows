@@ -147,8 +147,10 @@ namespace DS4Windows
 
                     if (contType == OutContType.X360)
                     {
-                        var tempXbox = outputDevice as Xbox360OutDevice;
-                        AppLogger.LogToGui($"Plugging in virtual X360 controller (XInput slot #{(tempXbox.XinputSlotNum < 0 ? "?" : tempXbox.XinputSlotNum + 1 )}) in output slot #{slot + 1}", false);
+                        //var tempXbox = outputDevice as Xbox360OutDevice;
+                        var tempXbox = outputDevice as Xbox360ScpOutDevice;
+                        //AppLogger.LogToGui($"Plugging in virtual X360 controller (XInput slot #{(tempXbox.XinputSlotNum < 0 ? "?" : tempXbox.XinputSlotNum + 1 )}) in output slot #{slot + 1}", false);
+                        AppLogger.LogToGui($"Plugging in virtual X360 controller (XInput slot #{(tempXbox.XinputSlotNum < 0 ? "?" : tempXbox.XinputSlotNum + 1)}) in output slot #{slot + 1}", false);
                     }
                     else
                     {

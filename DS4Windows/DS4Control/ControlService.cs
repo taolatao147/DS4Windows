@@ -989,134 +989,134 @@ namespace DS4Windows
                 tempXbox.FeedbackReceived += p;
                 tempXbox.forceFeedbacksDict.Add(index, p);
             }
-            else if (contType == OutContType.DS4)
-            {
-                DS4OutDevice tempDS4 = outDevice as DS4OutDevice;
-                if (tempDS4.CanUseAwaitOutputBuffer)
-                {
-                    DS4OutDeviceExt.ReceivedOutBufferHandler processOutBuffAction = (DS4OutDeviceExt sender, byte[] reportData) =>
-                    {
-                        /*
-                        //DS4OutputBufferData outputData = new DS4OutputBufferData();
-                        DS4OutputBufferData outputData =
-                            DS4OutDeviceExtras.ConvertOutputBufferArrayToStruct(reportData);
+            //else if (contType == OutContType.DS4)
+            //{
+            //    DS4OutDevice tempDS4 = outDevice as DS4OutDevice;
+            //    if (tempDS4.CanUseAwaitOutputBuffer)
+            //    {
+            //        DS4OutDeviceExt.ReceivedOutBufferHandler processOutBuffAction = (DS4OutDeviceExt sender, byte[] reportData) =>
+            //        {
+            //            /*
+            //            //DS4OutputBufferData outputData = new DS4OutputBufferData();
+            //            DS4OutputBufferData outputData =
+            //                DS4OutDeviceExtras.ConvertOutputBufferArrayToStruct(reportData);
 
-                        bool useRumble = false; bool useLight = false;
-                        byte flashOn = 0; byte flashOff = 0;
-                        DS4Color? color = null;
+            //            bool useRumble = false; bool useLight = false;
+            //            byte flashOn = 0; byte flashOff = 0;
+            //            DS4Color? color = null;
 
-                        //Trace.WriteLine(string.Join(" ", reportData));
+            //            //Trace.WriteLine(string.Join(" ", reportData));
 
-                        if ((outputData.featureFlags & DS4OutDevice.RUMBLE_FEATURE_FLAG) != 0)
-                        {
-                            useRumble = true;
-                            device.setRumble(outputData.rightFastRumble, outputData.leftSlowRumble);
-                            //SetDevRumble(device, devour[4], devour[5], devIndex);
-                        }
+            //            if ((outputData.featureFlags & DS4OutDevice.RUMBLE_FEATURE_FLAG) != 0)
+            //            {
+            //                useRumble = true;
+            //                device.setRumble(outputData.rightFastRumble, outputData.leftSlowRumble);
+            //                //SetDevRumble(device, devour[4], devour[5], devIndex);
+            //            }
 
-                        if ((outputData.featureFlags & DS4OutDevice.LIGHTBAR_FEATURE_FLAG) != 0)
-                        {
-                            useLight = true;
-                            color = new DS4Color(outputData.lightbarRedColor,
-                                outputData.lightbarGreenColor,
-                                outputData.lightbarBlueColor);
-                        }
-                        else
-                        {
-                            color = device.LightBarColor;
-                        }
+            //            if ((outputData.featureFlags & DS4OutDevice.LIGHTBAR_FEATURE_FLAG) != 0)
+            //            {
+            //                useLight = true;
+            //                color = new DS4Color(outputData.lightbarRedColor,
+            //                    outputData.lightbarGreenColor,
+            //                    outputData.lightbarBlueColor);
+            //            }
+            //            else
+            //            {
+            //                color = device.LightBarColor;
+            //            }
 
-                        if ((outputData.featureFlags & DS4OutDevice.FLASH_FEATURE_FLAG) != 0)
-                        {
-                            useLight = true;
-                            flashOn = outputData.flashOnDuration;
-                            flashOff = outputData.flashOffDuration;
-                        }
-                        else
-                        {
-                            ref DS4LightbarState currentLight =
-                                ref device.GetLightbarStateRef();
+            //            if ((outputData.featureFlags & DS4OutDevice.FLASH_FEATURE_FLAG) != 0)
+            //            {
+            //                useLight = true;
+            //                flashOn = outputData.flashOnDuration;
+            //                flashOff = outputData.flashOffDuration;
+            //            }
+            //            else
+            //            {
+            //                ref DS4LightbarState currentLight =
+            //                    ref device.GetLightbarStateRef();
 
-                            flashOn = currentLight.LightBarFlashDurationOn;
-                            flashOff = currentLight.LightBarFlashDurationOff;
-                        }
+            //                flashOn = currentLight.LightBarFlashDurationOn;
+            //                flashOff = currentLight.LightBarFlashDurationOff;
+            //            }
 
-                        if (useLight)
-                        {
-                            DS4LightbarState lightState = new DS4LightbarState
-                            {
-                                LightBarColor = (DS4Color)color,
-                                LightBarFlashDurationOn = flashOn,
-                                LightBarFlashDurationOff = flashOff,
-                            };
-                            device.SetLightbarState(ref lightState);
-                        }
-                        //*/
+            //            if (useLight)
+            //            {
+            //                DS4LightbarState lightState = new DS4LightbarState
+            //                {
+            //                    LightBarColor = (DS4Color)color,
+            //                    LightBarFlashDurationOn = flashOn,
+            //                    LightBarFlashDurationOff = flashOff,
+            //                };
+            //                device.SetLightbarState(ref lightState);
+            //            }
+            //            //*/
 
-                        //*
-                        unchecked
-                        {
-                            //Trace.WriteLine($"INDEX: {devIndex}");
-                            //Trace.WriteLine(string.Join(" ", reportData));
-                            //Trace.WriteLine("");
+            //            //*
+            //            unchecked
+            //            {
+            //                //Trace.WriteLine($"INDEX: {devIndex}");
+            //                //Trace.WriteLine(string.Join(" ", reportData));
+            //                //Trace.WriteLine("");
 
-                            bool useRumble = false; bool useLight = false;
-                            byte flashOn = 0; byte flashOff = 0;
-                            DS4Color? color = null;
-                            if ((reportData[1] & DS4OutDevice.RUMBLE_FEATURE_FLAG) != 0)
-                            {
-                                useRumble = true;
-                                device.setRumble(reportData[4], reportData[5]);
-                                //SetDevRumble(device, devour[4], devour[5], devIndex);
-                            }
+            //                bool useRumble = false; bool useLight = false;
+            //                byte flashOn = 0; byte flashOff = 0;
+            //                DS4Color? color = null;
+            //                if ((reportData[1] & DS4OutDevice.RUMBLE_FEATURE_FLAG) != 0)
+            //                {
+            //                    useRumble = true;
+            //                    device.setRumble(reportData[4], reportData[5]);
+            //                    //SetDevRumble(device, devour[4], devour[5], devIndex);
+            //                }
 
-                            if ((reportData[1] & DS4OutDevice.LIGHTBAR_FEATURE_FLAG) != 0)
-                            {
-                                useLight = true;
-                                color = new DS4Color(reportData[6],
-                                    reportData[7],
-                                    reportData[8]);
-                            }
-                            else
-                            {
-                                color = device.LightBarColor;
-                            }
+            //                if ((reportData[1] & DS4OutDevice.LIGHTBAR_FEATURE_FLAG) != 0)
+            //                {
+            //                    useLight = true;
+            //                    color = new DS4Color(reportData[6],
+            //                        reportData[7],
+            //                        reportData[8]);
+            //                }
+            //                else
+            //                {
+            //                    color = device.LightBarColor;
+            //                }
 
-                            if ((reportData[1] & DS4OutDevice.FLASH_FEATURE_FLAG) != 0)
-                            {
-                                useLight = true;
-                                flashOn = reportData[9];
-                                flashOff = reportData[10];
-                            }
-                            else
-                            {
-                                ref DS4LightbarState currentLight =
-                                    ref device.GetLightbarStateRef();
+            //                if ((reportData[1] & DS4OutDevice.FLASH_FEATURE_FLAG) != 0)
+            //                {
+            //                    useLight = true;
+            //                    flashOn = reportData[9];
+            //                    flashOff = reportData[10];
+            //                }
+            //                else
+            //                {
+            //                    ref DS4LightbarState currentLight =
+            //                        ref device.GetLightbarStateRef();
 
-                                flashOn = currentLight.LightBarFlashDurationOn;
-                                flashOff = currentLight.LightBarFlashDurationOff;
-                            }
+            //                    flashOn = currentLight.LightBarFlashDurationOn;
+            //                    flashOff = currentLight.LightBarFlashDurationOff;
+            //                }
 
-                            if (useLight)
-                            {
-                                DS4LightbarState lightState = new DS4LightbarState
-                                {
-                                    LightBarColor = (DS4Color)color,
-                                    LightBarFlashDurationOn = flashOn,
-                                    LightBarFlashDurationOff = flashOff,
-                                };
-                                device.SetLightbarState(ref lightState);
-                            }
-                        }
-                        //*/
-                    };
+            //                if (useLight)
+            //                {
+            //                    DS4LightbarState lightState = new DS4LightbarState
+            //                    {
+            //                        LightBarColor = (DS4Color)color,
+            //                        LightBarFlashDurationOn = flashOn,
+            //                        LightBarFlashDurationOff = flashOff,
+            //                    };
+            //                    device.SetLightbarState(ref lightState);
+            //                }
+            //            }
+            //            //*/
+            //        };
 
-                    DS4OutDeviceExt tempDS4Ext = tempDS4 as DS4OutDeviceExt;
-                    tempDS4Ext.ReceivedOutBuffer += processOutBuffAction;
-                    tempDS4Ext.outBufferFeedbacksDict.TryAdd(index, processOutBuffAction);
-                    tempDS4Ext.StartOutputBufferThread();
-                }
-            }
+            //        DS4OutDeviceExt tempDS4Ext = tempDS4 as DS4OutDeviceExt;
+            //        tempDS4Ext.ReceivedOutBuffer += processOutBuffAction;
+            //        tempDS4Ext.outBufferFeedbacksDict.TryAdd(index, processOutBuffAction);
+            //        tempDS4Ext.StartOutputBufferThread();
+            //    }
+            //}
             //else if (contType == OutContType.DS4)
             //{
             //    DS4OutDevice tempDS4 = outDevice as DS4OutDevice;
@@ -1204,11 +1204,11 @@ namespace DS4Windows
                 //tempXbox.cont.FeedbackReceived -= tempXbox.forceFeedbackCall;
                 //tempXbox.forceFeedbackCall = null;
             }
-            else if (contType == OutContType.DS4)
-            {
-                DS4OutDevice tempDS4 = outDevice as DS4OutDevice;
-                tempDS4.RemoveFeedback(inIdx);
-            }
+            //else if (contType == OutContType.DS4)
+            //{
+            //    DS4OutDevice tempDS4 = outDevice as DS4OutDevice;
+            //    tempDS4.RemoveFeedback(inIdx);
+            //}
             //else if (contType == OutContType.DS4)
             //{
             //    DS4OutDevice tempDS4 = outDevice as DS4OutDevice;

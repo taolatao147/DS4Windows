@@ -18,6 +18,8 @@ namespace DS4Windows
 
         private X360BusDevice x360Bus;
         private int slotIdx = 0;
+        public int SlotIdx => slotIdx;
+        public int XinputSlotNum => slotIdx;
 
         public delegate void Xbox360FeedbackReceivedEventHandler(Xbox360ScpOutDevice sender, byte large, byte small, int idx);
         public event Xbox360FeedbackReceivedEventHandler FeedbackReceived;

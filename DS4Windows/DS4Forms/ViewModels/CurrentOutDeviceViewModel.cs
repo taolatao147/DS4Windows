@@ -262,9 +262,9 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             get
             {
                 bool result = false;
-
-                result = outSlotDevice.CurrentType == OutContType.X360 &&
-                    (outSlotDevice.OutputDevice as Xbox360OutDevice).Features.HasFlag(Xbox360OutDevice.X360Features.XInputSlotNum);
+                result = outSlotDevice.CurrentType == OutContType.X360;
+                //result = outSlotDevice.CurrentType == OutContType.X360 &&
+                //    (outSlotDevice.OutputDevice as Xbox360OutDevice).Features.HasFlag(Xbox360OutDevice.X360Features.XInputSlotNum);
 
                 return result;
             }
@@ -278,7 +278,7 @@ namespace DS4WinWPF.DS4Forms.ViewModels
                 var xinputSlot = "?";
                 if (outSlotDevice.CurrentType == OutContType.X360)
                 {
-                    var tempX360 = outSlotDevice.OutputDevice as Xbox360OutDevice;
+                    var tempX360 = outSlotDevice.OutputDevice as Xbox360ScpOutDevice;
                     if (tempX360.XinputSlotNum >= 0) xinputSlot = $"{tempX360.XinputSlotNum + 1}";
                 }
                 return xinputSlot;
