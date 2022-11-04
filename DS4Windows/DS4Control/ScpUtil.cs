@@ -18,6 +18,9 @@ using System.Windows.Input;
 using System.Runtime.InteropServices;
 using static DS4Windows.Mouse;
 using DS4Windows.StickModifiers;
+using System.Windows;
+using static DS4Windows.Util;
+using WpfScreenHelper;
 
 namespace DS4Windows
 {
@@ -25,7 +28,7 @@ namespace DS4Windows
     public enum DS4KeyType : byte { None = 0, ScanCode = 1, Toggle = 2, Unbound = 4, Macro = 8, HoldMacro = 16, RepeatMacro = 32 }; // Increment by exponents of 2*, starting at 2^0
     public enum Ds3PadId : byte { None = 0xFF, One = 0x00, Two = 0x01, Three = 0x02, Four = 0x03, All = 0x04 };
     public enum DS4Controls : byte { None, LXNeg, LXPos, LYNeg, LYPos, RXNeg, RXPos, RYNeg, RYPos, L1, L2, L3, R1, R2, R3, Square, Triangle, Circle, Cross, DpadUp, DpadRight, DpadDown, DpadLeft, PS, TouchLeft, TouchUpper, TouchMulti, TouchRight, Share, Options, Mute, GyroXPos, GyroXNeg, GyroZPos, GyroZNeg, SwipeLeft, SwipeRight, SwipeUp, SwipeDown, L2FullPull, R2FullPull, GyroSwipeLeft, GyroSwipeRight, GyroSwipeUp, GyroSwipeDown, Capture, SideL, SideR, LSOuter, RSOuter };
-    public enum X360Controls : byte { None, LXNeg, LXPos, LYNeg, LYPos, RXNeg, RXPos, RYNeg, RYPos, LB, LT, LS, RB, RT, RS, X, Y, B, A, DpadUp, DpadRight, DpadDown, DpadLeft, Guide, Back, Start, TouchpadClick, LeftMouse, RightMouse, MiddleMouse, FourthMouse, FifthMouse, WUP, WDOWN, MouseUp, MouseDown, MouseLeft, MouseRight, Unbound };
+    public enum X360Controls : byte { None, LXNeg, LXPos, LYNeg, LYPos, RXNeg, RXPos, RYNeg, RYPos, LB, LT, LS, RB, RT, RS, X, Y, B, A, DpadUp, DpadRight, DpadDown, DpadLeft, Guide, Back, Start, TouchpadClick, LeftMouse, RightMouse, MiddleMouse, FourthMouse, FifthMouse, WUP, WDOWN, MouseUp, MouseDown, MouseLeft, MouseRight, AbsMouseUp, AbsMouseDown, AbsMouseLeft, AbsMouseRight, Unbound };
 
     public enum SASteeringWheelEmulationAxisType: byte { None = 0, LX, LY, RX, RY, L2R2, VJoy1X, VJoy1Y, VJoy1Z, VJoy2X, VJoy2Y, VJoy2Z };
     public enum OutContType : uint { None = 0, X360, DS4 }
@@ -534,6 +537,9 @@ namespace DS4Windows
         public static bool fakerInputInstalled = IsFakerInputInstalled();
         public const string BLANK_FAKERINPUT_VERSION = "0.0.0.0";
         public static string fakerInputVersion = FakerInputVersion();
+        public static Rect absDisplayBounds = new Rect(0, 0, 2, 2);
+        public static Rect fullDesktopBounds = new Rect(0, 0, 2, 2);
+        public static bool absUseAllMonitors = false;
 
         public static VirtualKBMBase outputKBMHandler = null;
         public static VirtualKBMMapping outputKBMMapping = null;
@@ -653,6 +659,10 @@ namespace DS4Windows
             [X360Controls.MouseDown] = "Mouse Down",
             [X360Controls.MouseLeft] = "Mouse Left",
             [X360Controls.MouseRight] = "Mouse Right",
+            [X360Controls.AbsMouseUp] = "Abs Mouse Up",
+            [X360Controls.AbsMouseDown] = "Abs Mouse Down",
+            [X360Controls.AbsMouseLeft] = "Abs Mouse Left",
+            [X360Controls.AbsMouseRight] = "Abs Mouse Right",
             [X360Controls.Unbound] = "Unbound",
             [X360Controls.None] = "Unassigned",
         };
@@ -696,6 +706,10 @@ namespace DS4Windows
             [X360Controls.MouseDown] = "Mouse Down",
             [X360Controls.MouseLeft] = "Mouse Left",
             [X360Controls.MouseRight] = "Mouse Right",
+            [X360Controls.AbsMouseUp] = "Abs Mouse Up",
+            [X360Controls.AbsMouseDown] = "Abs Mouse Down",
+            [X360Controls.AbsMouseLeft] = "Abs Mouse Left",
+            [X360Controls.AbsMouseRight] = "Abs Mouse Right",
             [X360Controls.Unbound] = "Unbound",
         };
 
@@ -1647,8 +1661,15 @@ namespace DS4Windows
             }
         }
 
+        public static string AbsoluteDisplayEDID
+        {
+            get => m_Config.absDisplayEDID;
+            set => m_Config.absDisplayEDID = value;
+        }
+
         // controller/profile specfic values
         public static ButtonMouseInfo[] ButtonMouseInfos => m_Config.buttonMouseInfos;
+        public static ButtonAbsMouseInfo[] ButtonAbsMouseInfos => m_Config.buttonAbsMouseInfos;
 
         public static byte[] RumbleBoost => m_Config.rumble;
         public static byte getRumbleBoost(int index)
@@ -2788,6 +2809,121 @@ namespace DS4Windows
                 m_Config.ds4controlSettings[deviceNum].EstablishExtraButtons(devButtons);
             }
         }
+
+        public static void TranslateCoorToAbsDisplay(double inX, double inY,
+            out double outX, out double outY)
+        {
+            //outX = outY = 0.0;
+            //int topLeftX = (int)absDisplayBounds.Left;
+            //double testLeft = 0.0;
+            //double testRight = 0.0;
+            //double testTop = 0.0;
+            //double testBottom = 0.0;
+
+            double widthRatio = (absDisplayBounds.Left + absDisplayBounds.Right) / fullDesktopBounds.Width;
+            double heightRatio = (absDisplayBounds.Top + absDisplayBounds.Bottom) / fullDesktopBounds.Height;
+            double bX = absDisplayBounds.Left / fullDesktopBounds.Width;
+            double bY = absDisplayBounds.Top / fullDesktopBounds.Height;
+
+            outX = widthRatio * inX + bX;
+            outY = heightRatio * inY + bY;
+            //outX = (absDisplayBounds.TopRight.X - absDisplayBounds.TopLeft.X) * inX + absDisplayBounds.TopLeft.X;
+            //outY = (absDisplayBounds.BottomRight.Y - absDisplayBounds.TopLeft.Y) * inY + absDisplayBounds.TopLeft.Y;
+        }
+
+        public static void PrepareAbsMonitorBounds(string edid)
+        {
+            bool foundMonitor = false;
+            DISPLAY_DEVICE display = new DISPLAY_DEVICE();
+            if (!absUseAllMonitors && !string.IsNullOrEmpty(edid))
+            {
+                foundMonitor = FindMonitorByEDID(edid, out display);
+            }
+
+            if (foundMonitor && !absUseAllMonitors)
+            {
+                // Grab resolution of monitor and full desktop range.
+                // Establish abs region bounds
+                fullDesktopBounds = SystemInformation.VirtualScreen;
+                List<Screen> tempScreens = Screen.AllScreens.ToList();
+                foreach(Screen tempScreen in tempScreens)
+                {
+                    if (tempScreen.DeviceName == display.DeviceName)
+                    {
+                        absDisplayBounds = tempScreen.Bounds;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // Grab resolution of full desktop range.
+                // Establish abs region bounds
+                absUseAllMonitors = true;
+                fullDesktopBounds = SystemInformation.VirtualScreen;
+                absDisplayBounds = fullDesktopBounds;
+            }
+        }
+
+        public static bool FindMonitorByEDID(string edid, out DISPLAY_DEVICE display)
+        {
+            DISPLAY_DEVICE d = new DISPLAY_DEVICE();
+            d.cb = Marshal.SizeOf(d);
+            bool foundMonitor = false;
+            try
+            {
+                for (uint id = 0;
+                    EnumDisplayDevicesW(null, id, ref d, 0); id++)
+                {
+                    if (d.StateFlags.HasFlag(DisplayDeviceStateFlags.AttachedToDesktop))
+                    {
+                        EnumDisplayDevicesW(d.DeviceName, id, ref d,
+                            EDD_GET_DEVICE_INTERFACE_NAME);
+                        if (d.DeviceID == edid)
+                        {
+                            foundMonitor = true;
+                            break;
+                        }
+                    }
+
+                    d.cb = Marshal.SizeOf(d);
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            display = foundMonitor ? d : new DISPLAY_DEVICE();
+            return foundMonitor;
+        }
+
+        public static IEnumerable<DISPLAY_DEVICE> GrabCurrentMonitors()
+        {
+            List<DISPLAY_DEVICE> result = new List<DISPLAY_DEVICE>();
+
+            DISPLAY_DEVICE d = new DISPLAY_DEVICE();
+            d.cb = Marshal.SizeOf(d);
+            try
+            {
+                for (uint id = 0;
+                    EnumDisplayDevicesW(null, id, ref d, 0); id++)
+                {
+                    if (d.StateFlags.HasFlag(DisplayDeviceStateFlags.AttachedToDesktop))
+                    {
+                        EnumDisplayDevicesW(d.DeviceName, id, ref d,
+                            EDD_GET_DEVICE_INTERFACE_NAME);
+                        result.Add(d);
+                    }
+
+                    d.cb = Marshal.SizeOf(d);
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return result;
+        }
     }
 
     public class BackingStore
@@ -2809,6 +2945,13 @@ namespace DS4Windows
             new ButtonMouseInfo(), new ButtonMouseInfo(), new ButtonMouseInfo(),
             new ButtonMouseInfo(), new ButtonMouseInfo(), new ButtonMouseInfo(),
             new ButtonMouseInfo(), new ButtonMouseInfo(), new ButtonMouseInfo(),
+        };
+
+        public ButtonAbsMouseInfo[] buttonAbsMouseInfos = new ButtonAbsMouseInfo[Global.TEST_PROFILE_ITEM_COUNT]
+        {
+            new ButtonAbsMouseInfo(), new ButtonAbsMouseInfo(), new ButtonAbsMouseInfo(),
+            new ButtonAbsMouseInfo(), new ButtonAbsMouseInfo(), new ButtonAbsMouseInfo(),
+            new ButtonAbsMouseInfo(), new ButtonAbsMouseInfo(), new ButtonAbsMouseInfo(),
         };
 
         public bool[] enableTouchToggle = new bool[Global.TEST_PROFILE_ITEM_COUNT] { true, true, true, true, true, true, true, true, true };
@@ -3129,6 +3272,7 @@ namespace DS4Windows
         public string customSteamFolder;
         public AppThemeChoice useCurrentTheme;
         public string fakeExeFileName = string.Empty;
+        public string absDisplayEDID = string.Empty;
 
         public ControlServiceDeviceOptions deviceOptions =
             new ControlServiceDeviceOptions();
@@ -3883,6 +4027,20 @@ namespace DS4Windows
                     rootElement.AppendChild(xmlTouchMouseStickGroupEl);
                 }
 
+                // Isolate as a group. More readable for this???
+                //if (false)
+                {
+                    XmlElement xmlBtnAbsMouseEl = m_Xdoc.CreateElement("AbsMouseRegionSettings");
+                    XmlElement xmlBtnAbsMouseWidth = m_Xdoc.CreateElement("AbsWidth"); xmlBtnAbsMouseWidth.InnerText = buttonAbsMouseInfos[device].width.ToString(); xmlBtnAbsMouseEl.AppendChild(xmlBtnAbsMouseWidth);
+                    XmlElement xmlBtnAbsMouseHeight = m_Xdoc.CreateElement("AbsHeight"); xmlBtnAbsMouseHeight.InnerText = buttonAbsMouseInfos[device].height.ToString(); xmlBtnAbsMouseEl.AppendChild(xmlBtnAbsMouseHeight);
+                    XmlElement xmlBtnAbsMouseXCenter = m_Xdoc.CreateElement("AbsXCenter"); xmlBtnAbsMouseXCenter.InnerText = buttonAbsMouseInfos[device].xcenter.ToString(); xmlBtnAbsMouseEl.AppendChild(xmlBtnAbsMouseXCenter);
+                    XmlElement xmlBtnAbsMouseYCenter = m_Xdoc.CreateElement("AbsYCenter"); xmlBtnAbsMouseYCenter.InnerText = buttonAbsMouseInfos[device].ycenter.ToString(); xmlBtnAbsMouseEl.AppendChild(xmlBtnAbsMouseYCenter);
+                    XmlElement xmlBtnAbsMouseAntiRadius = m_Xdoc.CreateElement("AntiRadius"); xmlBtnAbsMouseAntiRadius.InnerText = buttonAbsMouseInfos[device].antiRadius.ToString(); xmlBtnAbsMouseEl.AppendChild(xmlBtnAbsMouseAntiRadius);
+                    XmlElement xmlBtnAbsMouseSnapCenter = m_Xdoc.CreateElement("SnapToCenter"); xmlBtnAbsMouseSnapCenter.InnerText = buttonAbsMouseInfos[device].snapToCenter.ToString(); xmlBtnAbsMouseEl.AppendChild(xmlBtnAbsMouseSnapCenter);
+
+                    rootElement.AppendChild(xmlBtnAbsMouseEl);
+                }
+
                 XmlNode xmlTouchButtonMode = m_Xdoc.CreateNode(XmlNodeType.Element, "TouchpadButtonMode", null); xmlTouchButtonMode.InnerText = touchpadButtonMode[device].ToString(); rootElement.AppendChild(xmlTouchButtonMode);
                 XmlNode xmlOutContDevice = m_Xdoc.CreateNode(XmlNodeType.Element, "OutputContDevice", null); xmlOutContDevice.InnerText = OutContDeviceString(outputDevType[device]); rootElement.AppendChild(xmlOutContDevice);
 
@@ -4258,6 +4416,10 @@ namespace DS4Windows
                 case "Mouse Down": return X360Controls.MouseDown;
                 case "Mouse Left": return X360Controls.MouseLeft;
                 case "Mouse Right": return X360Controls.MouseRight;
+                case "Abs Mouse Up": return X360Controls.AbsMouseUp;
+                case "Abs Mouse Down": return X360Controls.AbsMouseDown;
+                case "Abs Mouse Left": return X360Controls.AbsMouseLeft;
+                case "Abs Mouse Right": return X360Controls.AbsMouseRight;
                 case "Unbound": return X360Controls.Unbound;
             }
 
@@ -4309,6 +4471,10 @@ namespace DS4Windows
                 case X360Controls.MouseDown: return "Mouse Down";
                 case X360Controls.MouseLeft: return "Mouse Left";
                 case X360Controls.MouseRight: return "Mouse Right";
+                case X360Controls.AbsMouseUp: return "Abs Mouse Up";
+                case X360Controls.AbsMouseDown: return "Abs Mouse Down";
+                case X360Controls.AbsMouseLeft: return "Abs Mouse Left";
+                case X360Controls.AbsMouseRight: return "Abs Mouse Right";
                 case X360Controls.Unbound: return "Unbound";
             }
 
@@ -6252,6 +6418,73 @@ namespace DS4Windows
                 }
                 catch { touchpadButtonMode[device] = TouchButtonActivationMode.Click; missingSetting = true; }
 
+                bool absMouseGroup = false;
+                XmlNode xmlAbsMouseElement =
+                    m_Xdoc.SelectSingleNode($"/{rootname}/AbsMouseRegionSettings");
+                absMouseGroup = xmlAbsMouseElement != null;
+                if (absMouseGroup && xmlAbsMouseElement.HasChildNodes)
+                {
+                    try
+                    {
+                        Item = xmlAbsMouseElement.SelectSingleNode("AbsWidth");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            buttonAbsMouseInfos[device].width = Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlAbsMouseElement.SelectSingleNode("AbsHeight");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            buttonAbsMouseInfos[device].height = Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlAbsMouseElement.SelectSingleNode("AbsXCenter");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            buttonAbsMouseInfos[device].xcenter = Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlAbsMouseElement.SelectSingleNode("AbsYCenter");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            buttonAbsMouseInfos[device].ycenter = Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlAbsMouseElement.SelectSingleNode("AntiRadius");
+                        if (double.TryParse(Item?.InnerText ?? "", out double temp))
+                        {
+                            buttonAbsMouseInfos[device].antiRadius = Math.Clamp(temp, 0.0, 1.0);
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        Item = xmlAbsMouseElement.SelectSingleNode("SnapToCenter");
+                        if (bool.TryParse(Item?.InnerText ?? "", out bool temp))
+                        {
+                            buttonAbsMouseInfos[device].snapToCenter = temp;
+                        }
+                    }
+                    catch { }
+                }
+
                 try { Item = m_Xdoc.SelectSingleNode("/" + rootname + "/OutputContDevice"); outputDevType[device] = OutContDeviceId(Item.InnerText); }
                 catch { outputDevType[device] = OutContType.X360; missingSetting = true; }
 
@@ -6765,6 +6998,13 @@ namespace DS4Windows
                     try { Item = m_Xdoc.SelectSingleNode("/Profile/AutoProfileRevertDefaultProfile"); Boolean.TryParse(Item.InnerText, out autoProfileRevertDefaultProfile); }
                     catch { missingSetting = true; }
 
+                    try
+                    {
+                        Item = m_Xdoc.SelectSingleNode("/Profile/AbsRegionDisplay");
+                        absDisplayEDID = Item?.InnerText ?? string.Empty;
+                    }
+                    catch { }
+
 
                     XmlNode xmlDeviceOptions = m_Xdoc.SelectSingleNode("/Profile/DeviceOptions");
                     if (xmlDeviceOptions != null)
@@ -6866,6 +7106,8 @@ namespace DS4Windows
 
             if (Loaded)
             {
+                Global.PrepareAbsMonitorBounds(absDisplayEDID);
+
                 string custom_exe_name_path = Path.Combine(Global.exedirpath, Global.CUSTOM_EXE_CONFIG_FILENAME);
                 bool fakeExeFileExists = File.Exists(custom_exe_name_path);
                 if (fakeExeFileExists)
@@ -7009,6 +7251,13 @@ namespace DS4Windows
             }
 
             m_Xdoc.AppendChild(rootElement);
+
+            if (!string.IsNullOrEmpty(absDisplayEDID))
+            {
+                XmlElement xmlAbsMonitorEDID = m_Xdoc.CreateElement("AbsRegionDisplay", null);
+                xmlAbsMonitorEDID.InnerText = absDisplayEDID;
+                rootElement.AppendChild(xmlAbsMonitorEDID);
+            }
 
             try
             {
@@ -7751,6 +8000,7 @@ namespace DS4Windows
         private void ResetProfile(int device)
         {
             buttonMouseInfos[device].Reset();
+            buttonAbsMouseInfos[device].Reset();
             gyroControlsInf[device].Reset();
 
             enableTouchToggle[device] = true;
