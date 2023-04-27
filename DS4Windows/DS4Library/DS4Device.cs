@@ -128,6 +128,7 @@ namespace DS4Windows
     {
         public DS4LightbarState lightbarState;
         public DS4ForceFeedbackState rumbleState;
+        public bool dirty;
 
         public bool Equals(DS4HapticState other)
         {
@@ -620,7 +621,6 @@ namespace DS4Windows
             displayName = disName;
             this.featureSet = featureSet;
 
-            conType = HidConnectionType(hDevice);
             exclusiveStatus = ExclusiveStatus.Shared;
             if (hidDevice.IsExclusive)
             {
@@ -630,7 +630,6 @@ namespace DS4Windows
             if (this.FeatureSet != VidPidFeatureSet.DefaultDS4)
                 AppLogger.LogToGui($"The gamepad {displayName} ({conType}) uses custom feature set ({this.FeatureSet.ToString("F")})", false);
 
-            Mac = hDevice.ReadSerial(SerialReportID);
             runCalib = (this.featureSet & VidPidFeatureSet.NoGyroCalib) == 0;
 
             touchpad = new DS4Touchpad();
@@ -639,6 +638,9 @@ namespace DS4Windows
 
         public virtual void PostInit()
         {
+            conType = HidConnectionType(hDevice);
+            Mac = hDevice.ReadSerial(SerialReportID);
+
             //HidDevice hidDevice = hDevice;
             deviceType = InputDevices.InputDeviceType.DS4;
             gyroMouseSensSettings = new GyroMouseSens();
@@ -859,7 +861,10 @@ namespace DS4Windows
                     exitInputThread = true;
                     //ds4Input.Interrupt();
                     if (!abortInputThread)
+                    {
+                        hDevice.CancelIO();
                         ds4Input.Join();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -1506,6 +1511,7 @@ namespace DS4Windows
                         change = byteR[i] != byteB[i];
                 }
 
+                change = change || currentHap.dirty;
                 /*if (change)
                 {
                     Console.WriteLine("CHANGE: {0} {1} {2} {3} {4} {5}", currentHap.LightBarColor.red, currentHap.LightBarColor.green, currentHap.LightBarColor.blue, currentHap.RumbleMotorStrengthRightLightFast, currentHap.RumbleMotorStrengthLeftHeavySlow, DateTime.Now.ToString());
@@ -1535,6 +1541,7 @@ namespace DS4Windows
                         change = byteR[i] != byteB[i];
                 }
 
+                change = change || currentHap.dirty;
                 haptime = haptime || change;
             }
         }
@@ -1655,6 +1662,8 @@ namespace DS4Windows
                 StopOutputUpdate();
                 exitOutputThread = true;
             }
+
+            currentHap.dirty = false;
         }
 
         // Perform outReportBuffer copy on a separate thread to save
@@ -1793,6 +1802,7 @@ namespace DS4Windows
             testRumble.rumbleState.RumbleMotorStrengthRightLightFast = rightLightFastMotor;
             testRumble.rumbleState.RumbleMotorStrengthLeftHeavySlow = leftHeavySlowMotor;
             testRumble.rumbleState.RumbleMotorsExplicitlyOff = rightLightFastMotor == 0 && leftHeavySlowMotor == 0;
+            testRumble.dirty = true;
 
             // If rumble autostop timer (msecs) is enabled for this device then restart autostop timer everytime rumble is modified (or stop the timer if rumble is set to zero)
             if (rumbleAutostopTime > 0)
@@ -1815,6 +1825,9 @@ namespace DS4Windows
                 //currentHap.rumbleState.RumbleMotorStrengthRightLightFast = testRumble.rumbleState.RumbleMotorStrengthRightLightFast;
                 currentHap.rumbleState = testRumble.rumbleState;
             }
+
+            currentHap.dirty = testRumble.dirty;
+            testRumble.dirty = false;
         }
 
         public DS4State getRawCurrentState()
@@ -1886,10 +1899,16 @@ namespace DS4Windows
         public void SetHapticState(ref DS4HapticState hs)
         {
             currentHap = hs;
+            currentHap.dirty = true;
         }
 
         public void SetLightbarState(ref DS4LightbarState lightState)
         {
+            if (!currentHap.lightbarState.Equals(lightState))
+            {
+                currentHap.dirty = true;
+            }
+
             currentHap.lightbarState = lightState;
         }
 

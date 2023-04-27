@@ -311,9 +311,19 @@ namespace DS4WinWPF.DS4Forms
                 if (!IsActive && (Global.Notifications == 2 ||
                     (Global.Notifications == 1 && e.Warning)))
                 {
-                    notifyIcon.ShowNotification(TrayIconViewModel.ballonTitle,
-                        e.Data, !e.Warning ? H.NotifyIcon.Core.NotificationIcon.Info :
-                        H.NotifyIcon.Core.NotificationIcon.Warning);
+                    if (notifyIcon.IsCreated)
+                    {
+                        try
+                        {
+                            notifyIcon.ShowNotification(TrayIconViewModel.ballonTitle,
+                            e.Data, !e.Warning ? H.NotifyIcon.Core.NotificationIcon.Info :
+                            H.NotifyIcon.Core.NotificationIcon.Warning);
+                        }
+                        catch (System.InvalidOperationException)
+                        {
+                            // Ignore
+                        }
+                    }
                 }
             }));
         }
@@ -366,6 +376,7 @@ namespace DS4WinWPF.DS4Forms
                     managementEvWatcher.Start();
                 }
                 catch (ManagementException) { wmiConnected = false; }
+                catch (COMException) { wmiConnected = false; }
             }
 
             if (!wmiConnected)
@@ -471,13 +482,21 @@ Suspend support not enabled.", true);
                         if (wasrunning)
                         {
                             wasrunning = false;
-                            //Thread.Sleep(16000);
                             Dispatcher.Invoke(() =>
                             {
                                 StartStopBtn.IsEnabled = false;
                             });
 
-                            App.rootHub.Start();
+                            Program.rootHub.LogDebug(DS4WinWPF.Translations.Strings.WakeupFromSuspend);
+                            //Program.rootHub.LogDebug($"{Thread.CurrentThread.ManagedThreadId}");
+
+                            //Thread.Sleep(60000);
+                            //App.rootHub.Start();
+
+                            Task.Delay(120000).ContinueWith(t =>
+                            {
+                                App.rootHub.Start();
+                            });
                         }
                     }
 
@@ -490,10 +509,10 @@ Suspend support not enabled.", true);
 
                         if (App.rootHub.running)
                         {
-                            Dispatcher.Invoke(() =>
-                            {
-                                StartStopBtn.IsEnabled = false;
-                            });
+                            //Dispatcher.Invoke(() =>
+                            //{
+                            //    StartStopBtn.IsEnabled = false;
+                            //});
 
                             App.rootHub.Stop(immediateUnplug: true);
                             wasrunning = true;
@@ -1361,7 +1380,6 @@ Suspend support not enabled.", true);
                     temp.WaitForExit();
                     Global.RefreshHidHideInfo();
                     Global.RefreshFakerInputInfo();
-                    Program.rootHub.RefreshOutputKBMHandler();
 
                     settingsWrapVM.DriverCheckRefresh();
                 }

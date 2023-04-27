@@ -128,6 +128,12 @@ namespace DS4Windows.InputDevices
             Str25 = 6,
             Str12 = 7,
         }
+
+        public enum DeviceSubType : ushort
+        {
+            DualSense,
+            DSEdge,
+        }
         
         private const int BT_REPORT_OFFSET = 2;
         private InputReportDataBytes dataBytes;
@@ -145,6 +151,7 @@ namespace DS4Windows.InputDevices
         private new const byte USB_OUTPUT_CHANGE_LENGTH = 48;
         private const int OUTPUT_MIN_COUNT_BT = 20;
         private const byte LED_PLAYER_BAR_TOGGLE = 0x10;
+        private const int FEATURE_FIRMWARE_INFO_ID = 0x20;
         private bool timeStampInit = false;
         private uint timeStampPrevious = 0;
         private uint deltaTimeCurrent = 0;
@@ -175,6 +182,11 @@ namespace DS4Windows.InputDevices
         private TriggerEffectData r2EffectData;
 
         private byte muteLEDByte = 0x00;
+        private uint hwVersion;
+        private uint fwVersion;
+        private uint updateVersion;
+        private DeviceSubType subType = DeviceSubType.DualSense;
+        public DeviceSubType SubType => subType;
 
         private DualSenseControllerOptions nativeOptionsStore;
         public DualSenseControllerOptions NativeOptionsStore { get => nativeOptionsStore; }
@@ -201,11 +213,14 @@ namespace DS4Windows.InputDevices
         {
             HidDevice hidDevice = hDevice;
             deviceType = InputDeviceType.DualSense;
+            DetermineSubType(hidDevice);
+
             gyroMouseSensSettings = new GyroMouseSensDualSense();
             optionsStore = nativeOptionsStore = new DualSenseControllerOptions(deviceType);
             SetupOptionsEvents();
 
             conType = DetermineConnectionType(hDevice);
+            Mac = hDevice.ReadSerial(SerialReportID);
 
             if (conType == ConnectionType.USB)
             {
@@ -234,6 +249,44 @@ namespace DS4Windows.InputDevices
             if (runCalib)
                 RefreshCalibration();
 
+            // Attempt to grab hardware, firmware, and update version
+            // data from DualSense controller. Referenced hid-playstation Linux
+            // driver
+            byte[] firmwareInfoData = new byte[64];
+            firmwareInfoData[0] = FEATURE_FIRMWARE_INFO_ID;
+            bool featureFirmRead = false;
+            if (conType == ConnectionType.BT)
+            {
+                featureFirmRead = ReadBTFeatureReport(firmwareInfoData, 64);
+            }
+            else
+            {
+                featureFirmRead = hDevice.readFeatureData(firmwareInfoData);
+            }
+
+            if (featureFirmRead)
+            {
+                hwVersion = firmwareInfoData[24] |
+                    (uint)(firmwareInfoData[25] << 8) |
+                    (uint)(firmwareInfoData[26] << 16) |
+                    (uint)(firmwareInfoData[27] << 24);
+
+                fwVersion = firmwareInfoData[28] |
+                    (uint)(firmwareInfoData[29] << 8) |
+                    (uint)(firmwareInfoData[30] << 16) |
+                    (uint)(firmwareInfoData[31] << 24);
+
+                updateVersion = firmwareInfoData[44] | (uint)(firmwareInfoData[45] << 8);
+
+                // Accurate rumble defaults to true. Made device default to false if
+                // grabbed update version is too old
+                int versionCheckAccurate = DSFeatureVersion(2, 21);
+                if (updateVersion < versionCheckAccurate)
+                {
+                    useAccurateRumble = false;
+                }
+            }
+
             if (!hDevice.IsFileStreamOpen())
             {
                 hDevice.OpenFileStream(outputReport.Length);
@@ -244,6 +297,52 @@ namespace DS4Windows.InputDevices
             if (conType == ConnectionType.BT)
             {
                 SendInitialBTOutputReport();
+            }
+        }
+
+        private bool ReadBTFeatureReport(byte[] buffer, int size)
+        {
+            bool result = true;
+            bool found = false;
+            int crc32Pos = size - 4;
+            for (int tries = 0; !found && tries < 5; tries++)
+            {
+                hDevice.readFeatureData(buffer);
+                uint recvCrc32 = buffer[crc32Pos] |
+                                (uint)(buffer[crc32Pos + 1] << 8) |
+                                (uint)(buffer[crc32Pos + 2] << 16) |
+                                (uint)(buffer[crc32Pos + 3] << 24);
+
+                uint calcCrc32 = ~Crc32Algorithm.Compute(new byte[] { 0xA3 });
+                calcCrc32 = ~Crc32Algorithm.CalculateBasicHash(ref calcCrc32, ref buffer, 0, crc32Pos);
+                bool validCrc = recvCrc32 == calcCrc32;
+                if (!validCrc && tries >= 5)
+                {
+                    AppLogger.LogToGui("Feature report read failure", true);
+                    continue;
+                }
+                else if (validCrc)
+                {
+                    found = true;
+                }
+            }
+
+            result = found;
+            return result;
+        }
+
+        private int DSFeatureVersion(int major, int minor)
+        {
+            return ((major & 0xFF) << 8 | (minor & 0xFF));
+        }
+
+        private void DetermineSubType(HidDevice hidDevice)
+        {
+            subType = DeviceSubType.DualSense;
+            if (hidDevice.Attributes.VendorId == DS4Devices.SONY_VID &&
+                hidDevice.Attributes.ProductId == 0x0DF2)
+            {
+                subType = DeviceSubType.DSEdge;
             }
         }
 
@@ -605,6 +704,10 @@ namespace DS4Windows.InputDevices
                     cState.TouchButton = (tempByte & 0x02) != 0;
                     cState.OutputTouchButton = cState.TouchButton;
                     cState.Mute = (tempByte & (1 << 2)) != 0;
+                    cState.FnL = (tempByte & (1 << 4)) != 0;
+                    cState.FnR = (tempByte & (1 << 5)) != 0;
+                    cState.BLP = (tempByte & (1 << 6)) != 0;
+                    cState.BRP = (tempByte & (1 << 7)) != 0;
 
                     if ((this.featureSet & VidPidFeatureSet.NoBatteryReading) == 0)
                     {
@@ -823,10 +926,12 @@ namespace DS4Windows.InputDevices
                     if (outputDirty)
                     {
                         WriteReport();
+                        currentHap.dirty = false;
                         previousHapticState = currentHap;
                     }
 
                     outputDirty = false;
+                    currentHap.dirty = false;
                     //forceWrite = false;
 
                     if (!string.IsNullOrEmpty(currerror))
@@ -1021,7 +1126,7 @@ namespace DS4Windows.InputDevices
                 outputReport[46] = currentHap.lightbarState.LightBarColor.green;
                 outputReport[47] = currentHap.lightbarState.LightBarColor.blue;
 
-                if (!previousHapticState.Equals(currentHap))
+                if (currentHap.dirty || !previousHapticState.Equals(currentHap))
                 {
                     change = true;
                 }
@@ -1158,7 +1263,7 @@ namespace DS4Windows.InputDevices
                 outputReport[47] = currentHap.lightbarState.LightBarColor.green;
                 outputReport[48] = currentHap.lightbarState.LightBarColor.blue;
 
-                change = !previousHapticState.Equals(currentHap);
+                change = currentHap.dirty || !previousHapticState.Equals(currentHap);
 
                 // Need to calculate and populate CRC32 data so controller will accept the report
                 uint calcCrc32 = 0;
@@ -1344,6 +1449,7 @@ namespace DS4Windows.InputDevices
             queueEvent(() =>
             {
                 outputDirty = true;
+                currentHap.dirty = true;
                 PrepareOutReport();
             });
         }
