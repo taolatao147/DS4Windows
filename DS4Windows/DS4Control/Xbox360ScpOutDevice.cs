@@ -44,12 +44,15 @@ namespace DS4Windows
             x360Bus.Parse(state, report, slotIdx);
             if (x360Bus.Report(report, rumble))
             {
-                byte Big = rumble[3];
-                byte Small = rumble[4];
-
-                if (rumble[1] == 0x08)
+                unchecked
                 {
-                    FeedbackReceived?.Invoke(this, Big, Small, slotIdx);
+                    byte Big = rumble[3];
+                    byte Small = rumble[4];
+
+                    if (rumble[1] == 0x08)
+                    {
+                        FeedbackReceived?.Invoke(this, Big, Small, slotIdx);
+                    }
                 }
             }
         }
