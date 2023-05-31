@@ -98,17 +98,17 @@ namespace DS4Windows
 
         public void Parse(DS4State state, Byte[] Output, int device)
         {
-            Output[0] = 0x1C;
-            Output[4] = (Byte)(device + firstController);
-            Output[9] = 0x14;
-
-            for (int i = 10; i < 28; i++)
-            {
-                Output[i] = 0;
-            }
-
             unchecked
             {
+                Output[0] = 0x1C;
+                Output[4] = (Byte)(device + firstController);
+                Output[9] = 0x14;
+
+                for (int i = 10; i < 28; i++)
+                {
+                    Output[i] = 0;
+                }
+
                 if (state.Share) Output[10] |= (Byte)(1 << 5); // Back
                 if (state.L3) Output[10] |= (Byte)(1 << 6); // Left  Thumb
                 if (state.R3) Output[10] |= (Byte)(1 << 7); // Right Thumb
